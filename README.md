@@ -19,9 +19,9 @@ Automatic size conversion is intentionally outside the initial scope. Saved valu
 Docker Compose and Python 3.11+ are prerequisites. The installer checks for them but does not install Docker.
 
 ```bash
-git clone https://github.com/OWNER/size-note.git
+git clone https://github.com/teranchristian/size-note.git
 cd size-note
-./install.sh --profile my-profile
+./install.sh --profile YOUR_PROFILE
 ```
 
 This builds and starts the container, creates the persistent `data/` directory, installs the host CLI into `~/.local/bin`, copies the skill into the selected Hermes profile, and waits for a health check. Rerunning the installer is safe and preserves the SQLite database.
