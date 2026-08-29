@@ -22,7 +22,7 @@ def create_person(client):
         notes: str | None = None,
     ) -> dict:
         response = client.post(
-            "/api/v1/people",
+            "/api/people",
             json={
                 "name": name,
                 "growth_stage": growth_stage,

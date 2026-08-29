@@ -2,7 +2,7 @@
 
 Size Note is a private, self-hosted place to remember clothing, footwear, ring, hat, and other wearable sizes for the people you shop for. It includes a phone-friendly website, a JSON API, a CLI designed for AI agents, and a small Hermes skill. It does not use MCP.
 
-## What version 1 does
+## Current scope
 
 - Stores a canonical person name, confirmed aliases, `adult` or `child`, and optional notes.
 - Keeps relationship context in optional notes instead of building a family model.
@@ -12,7 +12,7 @@ Size Note is a private, self-hosted place to remember clothing, footwear, ring, 
 - Suggests reviews for children: 3 months for shoes and 6 months for other items.
 - Requires confirmation before a similar name becomes an alias.
 
-Automatic size conversion is intentionally outside the first version. Saved values are confirmed values.
+Automatic size conversion is intentionally outside the initial scope. Saved values are confirmed values.
 
 ## Install on a Hermes host
 
@@ -81,6 +81,10 @@ uv run ruff check .
 uv run pytest
 ```
 
+`tests/api_contract.json` locks the public routes and schemas. An intentional API
+change must be reviewed for CLI and Hermes compatibility before updating that
+contract snapshot.
+
 ## Architecture
 
 The website and JSON API call the same Python service layer. The CLI calls the API, and Hermes calls the CLI through its existing terminal capability.
@@ -100,13 +104,13 @@ SQLite data lives at `data/size-note.db` and is mounted outside the container. D
 
 Interactive API documentation is available at `/docs` while the service is running. Core routes are:
 
-- `POST /api/v1/people/resolve`
-- `POST /api/v1/people`
-- `POST /api/v1/people/{id}/aliases`
-- `POST /api/v1/sizes`
-- `POST /api/v1/sizes/{id}/verify`
-- `GET /api/v1/people/{id}/sizes`
-- `GET /api/v1/reviews`
+- `POST /api/people/resolve`
+- `POST /api/people`
+- `POST /api/people/{id}/aliases`
+- `POST /api/sizes`
+- `POST /api/sizes/{id}/verify`
+- `GET /api/people/{id}/sizes`
+- `GET /api/reviews`
 - `GET /health`
 
 ## License

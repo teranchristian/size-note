@@ -58,4 +58,4 @@ To check all child review reminders, run:
 size-note review --json
 ```
 
-Do not estimate size conversions unless Size Note explicitly returns an estimate. Version 1 stores confirmed values only.
+Do not estimate size conversions unless Size Note explicitly returns an estimate. The initial release stores confirmed values only.

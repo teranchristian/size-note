@@ -69,5 +69,5 @@ def test_confirmed_match_can_store_alias_then_size(monkeypatch):
 
     assert result.exit_code == 0
     assert len(calls) == 2
-    assert calls[0][1].endswith("/api/v1/people/person-1/aliases")
-    assert calls[1][1].endswith("/api/v1/sizes")
+    assert calls[0][1].endswith("/api/people/person-1/aliases")
+    assert calls[1][1].endswith("/api/sizes")

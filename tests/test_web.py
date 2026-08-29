@@ -49,5 +49,5 @@ def test_web_lookup_requires_confirmation_before_aliasing(client, create_person)
     assert "Who did you mean?" in result.text
     assert "Yes, use this person" in result.text
 
-    unchanged = client.get(f"/api/v1/people/{person['id']}").json()
+    unchanged = client.get(f"/api/people/{person['id']}").json()
     assert unchanged["aliases"] == []

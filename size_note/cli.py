@@ -44,7 +44,7 @@ def _request(method: str, url: str, **kwargs: Any) -> Any:
 
 
 def _resolve(base_url: str, person: str) -> dict[str, Any]:
-    return _request("POST", f"{base_url}/api/v1/people/resolve", json={"name": person})
+    return _request("POST", f"{base_url}/api/people/resolve", json={"name": person})
 
 
 def _emit(payload: Any, *, json_output: bool, human: str | None = None) -> None:
@@ -74,7 +74,7 @@ def person_add(
         raise typer.BadParameter("growth stage must be adult or child")
     payload = _request(
         "POST",
-        f"{_base_url(url)}/api/v1/people",
+        f"{_base_url(url)}/api/people",
         json={
             "name": name,
             "growth_stage": growth_stage,
@@ -134,13 +134,13 @@ def remember(
     elif remember_alias:
         _request(
             "POST",
-            f"{base_url}/api/v1/people/{person_id}/aliases",
+            f"{base_url}/api/people/{person_id}/aliases",
             json={"alias": person},
         )
 
     result = _request(
         "POST",
-        f"{base_url}/api/v1/sizes",
+        f"{base_url}/api/sizes",
         json={
             "person_id": person_id,
             "item": item,
@@ -182,10 +182,10 @@ def get_sizes(
     candidate = resolution["candidates"][0]
     records = _request(
         "GET",
-        f"{base_url}/api/v1/people/{candidate['id']}/sizes",
+        f"{base_url}/api/people/{candidate['id']}/sizes",
         params={"history": str(not current_only).lower()},
     )
-    all_reviews = _request("GET", f"{base_url}/api/v1/reviews")
+    all_reviews = _request("GET", f"{base_url}/api/reviews")
     reviews = [entry for entry in all_reviews if entry["person_id"] == candidate["id"]]
     review_status = {entry["size_id"]: entry["status"] for entry in reviews}
     payload = {
@@ -221,7 +221,7 @@ def people(
     url: Annotated[str | None, typer.Option("--url", envvar="SIZE_NOTE_URL")] = None,
 ) -> None:
     """List people and their aliases."""
-    payload = _request("GET", f"{_base_url(url)}/api/v1/people")
+    payload = _request("GET", f"{_base_url(url)}/api/people")
     human = "\n".join(
         f"- {person['name']}"
         + (f" ({', '.join(person['aliases'])})" if person["aliases"] else "")
@@ -236,7 +236,7 @@ def review(
     url: Annotated[str | None, typer.Option("--url", envvar="SIZE_NOTE_URL")] = None,
 ) -> None:
     """List age-aware size review dates for children."""
-    payload = _request("GET", f"{_base_url(url)}/api/v1/reviews")
+    payload = _request("GET", f"{_base_url(url)}/api/reviews")
     attention = [entry for entry in payload if entry["status"] != "current"]
     human = "\n".join(
         f"- {entry['person_name']} · {entry['item']} {entry['size']}: {entry['status']}"

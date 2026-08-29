@@ -25,7 +25,7 @@ from size_note.services.people import (
 )
 from size_note.services.sizes import list_reviews, list_sizes, save_size, verify_size
 
-router = APIRouter(prefix="/api/v1")
+router = APIRouter(prefix="/api")
 SessionDependency = Annotated[Session, Depends(get_session)]
 
 
