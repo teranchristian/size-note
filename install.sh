@@ -100,12 +100,23 @@ if [ "$install_skill" -eq 1 ]; then
     exit 1
   fi
 
-  if ! backend=$(NO_COLOR=1 hermes -p "$profile_name" \
+  backend=""
+  if backend_output=$(NO_COLOR=1 hermes -p "$profile_name" \
     config get terminal.backend 2>/dev/null); then
+    backend=$(printf '%s\n' "$backend_output" | tail -n 1 | tr -d '\r')
+  fi
+
+  if [ -z "$backend" ]; then
+    backend=$(NO_COLOR=1 hermes -p "$profile_name" \
+      config show 2>/dev/null \
+      | sed -n '/Terminal/,${/Backend:[[:space:]]*/{s/.*Backend:[[:space:]]*//;p;q}}' \
+      | tr -d '\r')
+  fi
+
+  if [ -z "$backend" ]; then
     printf 'Could not read terminal.backend for Hermes profile %s.\n' "$profile_name" >&2
     exit 1
   fi
-  backend=$(printf '%s\n' "$backend" | tail -n 1 | tr -d '\r')
   if [ "$backend" != "local" ]; then
     printf 'Hermes profile %s uses terminal.backend=%s.\n' "$profile_name" "$backend" >&2
     printf '%s\n' \
