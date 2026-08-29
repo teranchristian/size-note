@@ -16,15 +16,18 @@ Automatic size conversion is intentionally outside the initial scope. Saved valu
 
 ## Install on a Hermes host
 
-Docker Compose and Python 3.11+ are prerequisites. The installer checks for them but does not install Docker.
+Linux or macOS, Docker Compose, Python 3.11+ with `venv`, and Hermes are prerequisites. The Hermes profile must use `terminal.backend=local` because the skill calls a CLI installed on the host. The installer checks these requirements but does not install them or change Hermes configuration.
 
 ```bash
 git clone https://github.com/teranchristian/size-note.git
 cd size-note
-./install.sh --profile YOUR_PROFILE
+hermes profile list
+./install.sh --profile my-profile
 ```
 
-This builds and starts the container, creates the persistent `data/` directory, installs the host CLI into `~/.local/bin`, copies the skill into the selected Hermes profile, and waits for a health check. Rerunning the installer is safe and preserves the SQLite database.
+Use `./install.sh --profile default` for the default Hermes profile. The installer rejects unknown profiles instead of creating new profile directories.
+
+This builds and starts the container, creates the persistent `data/` directory, installs the host CLI into `~/.local/bin`, copies the skill into the selected Hermes profile, verifies CLI health and Hermes skill discovery, and then asks you to start a new Hermes session. Rerunning the installer upgrades the application while preserving the SQLite database.
 
 For a non-Hermes installation:
 
@@ -32,7 +35,22 @@ For a non-Hermes installation:
 ./install.sh --no-skill
 ```
 
-The website listens at `http://127.0.0.1:3010` by default. Keep that private binding and publish it through Tailscale Serve or an existing trusted reverse proxy for phone access. Set `SIZE_NOTE_PORT` in `.env` to change the host port.
+The website listens at `http://127.0.0.1:3010` by default. Keep that private binding and publish it through Tailscale Serve or an existing trusted reverse proxy for phone access. To use another port, edit `SIZE_NOTE_PORT` in `.env` or set it while installing:
+
+```bash
+SIZE_NOTE_PORT=3210 ./install.sh --profile my-profile
+```
+
+The installer configures the CLI to use the same port. An explicit `SIZE_NOTE_URL` environment variable can still override it.
+
+Verify the installation from the host:
+
+```bash
+size-note health
+hermes -p my-profile skills list
+```
+
+Then start a new Hermes session and ask it to remember or retrieve a size.
 
 ## CLI
 
@@ -79,11 +97,16 @@ Run checks:
 ```bash
 uv run ruff check .
 uv run pytest
+./scripts/requirements-lock.sh
 ```
 
 `tests/api_contract.json` locks the public routes and schemas. An intentional API
 change must be reviewed for CLI and Hermes compatibility before updating that
 contract snapshot.
+
+`requirements.lock` is exported from `uv.lock` and is used by both Docker and
+the host installer, so fresh installations use the dependency versions tested
+by CI.
 
 ## Architecture
 

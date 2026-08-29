@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v10
+        with:
+          version: "0.11.33"
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+          cache-suffix: py${{ matrix.python-version }}
+
+      - name: Install locked development dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Lint
+        run: .venv/bin/ruff check .
+
+      - name: Test
+        run: .venv/bin/pytest
+
+      - name: Verify installer dependency lock
+        if: matrix.python-version == '3.12'
+        run: ./scripts/requirements-lock.sh
+
+      - name: Build Python package
+        if: matrix.python-version == '3.12'
+        run: uv build
+
+  docker:
+    name: Docker AMD64 and ARM64
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build both supported architectures
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: false
+          tags: size-note:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -1,11 +1,23 @@
 ---
 name: size-note
 description: Save, update, or retrieve clothing, footwear, ring, hat, and other wearable sizes for people using the local Size Note CLI. Use when the user asks Hermes to remember what fits someone or check a saved size.
+version: 0.1.0
+license: MIT
+platforms: [linux, macos]
+prerequisites:
+  commands: [size-note]
+metadata:
+  hermes:
+    category: productivity
+    tags: [sizes, clothing, footwear, shopping]
+    requires_toolsets: [terminal]
 ---
 
 # Size Note
 
 Use the `size-note` CLI with `--json`. Size Note owns person matching, aliases, current sizes, and history; do not substitute conversational memory for it.
+
+Before the first operation in a session, run `size-note health --json`. If it is unavailable, tell the user that Size Note is not running or the CLI is not installed. Do not fall back to conversational memory.
 
 ## Save a size
 

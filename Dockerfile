@@ -6,11 +6,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY pyproject.toml README.md alembic.ini ./
+COPY pyproject.toml requirements.lock README.md LICENSE alembic.ini ./
 COPY alembic ./alembic
 COPY size_note ./size_note
 
-RUN pip install --no-cache-dir .
+RUN pip install --no-cache-dir -r requirements.lock \
+    && pip install --no-cache-dir --no-deps --no-build-isolation .
 
 RUN mkdir -p /data
 
