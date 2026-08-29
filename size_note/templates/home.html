@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}People · Size Note{% endblock %}
+{% block content %}
+  <section class="hero compact-hero">
+    <p class="eyebrow">Your private size memory</p>
+    <h1>Remember what fits.</h1>
+    <p>Keep current sizes and fit notes close when you are shopping.</p>
+  </section>
+
+  <form class="search-card" action="{{ url_for('find_person') }}" method="get">
+    <label for="person-search">Find a person</label>
+    <div class="inline-form">
+      <input id="person-search" name="name" placeholder="Name or alias, like Alex" required>
+      <button type="submit">Find</button>
+    </div>
+  </form>
+
+  {% if attention_count %}
+    <a class="notice-card" href="{{ url_for('reviews') }}">
+      <strong>{{ attention_count }} size{% if attention_count != 1 %}s{% endif %} to review</strong>
+      <span>Check whether growing children still wear these sizes.</span>
+    </a>
+  {% endif %}
+
+  <section class="section-heading">
+    <div>
+      <p class="eyebrow">People</p>
+      <h2>Who are you shopping for?</h2>
+    </div>
+    <span class="count">{{ people|length }}</span>
+  </section>
+
+  {% if people %}
+    <div class="people-grid">
+      {% for person in people %}
+        <a class="person-card" href="{{ url_for('person_detail', person_id=person.id) }}">
+          <span class="avatar">{{ person.name[0]|upper }}</span>
+          <span class="person-copy">
+            <strong>{{ person.name }}</strong>
+            <span>
+              {{ person.growth_stage|title }}
+              {% if person.aliases %} · {{ person.aliases|map(attribute='alias')|join(', ') }}{% endif %}
+            </span>
+          </span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <span class="empty-mark">SN</span>
+      <h2>Add the first person</h2>
+      <p>Create a simple profile, then save their shoe or clothing size.</p>
+      <a class="button" href="{{ url_for('new_person') }}">Add a person</a>
+    </div>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Add a person · Size Note{% endblock %}
+{% block content %}
+  <a class="back-link" href="{{ url_for('home') }}">← People</a>
+  <section class="page-heading">
+    <p class="eyebrow">New profile</p>
+    <h1>Add a person</h1>
+    <p>Relationships stay in notes. Size Note only needs a name and whether sizes may change quickly.</p>
+  </section>
+
+  {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
+  <form class="form-card" action="{{ url_for('create_person_web') }}" method="post">
+    <label for="name">Name</label>
+    <input id="name" name="name" value="{{ values.get('name', '') }}" autocomplete="name" required autofocus>
+
+    <fieldset>
+      <legend>Growth stage</legend>
+      <div class="choice-grid">
+        <label class="choice">
+          <input type="radio" name="growth_stage" value="adult" {% if values.get('growth_stage', 'adult') == 'adult' %}checked{% endif %}>
+          <span><strong>Adult</strong><small>No automatic review deadline</small></span>
+        </label>
+        <label class="choice">
+          <input type="radio" name="growth_stage" value="child" {% if values.get('growth_stage') == 'child' %}checked{% endif %}>
+          <span><strong>Child</strong><small>Shows age-aware review reminders</small></span>
+        </label>
+      </div>
+    </fieldset>
+
+    <label for="aliases">Aliases <span>optional</span></label>
+    <input id="aliases" name="aliases" value="{{ values.get('aliases', '') }}" placeholder="Alex, Lex">
+    <p class="field-help">Separate aliases with commas. Hermes can also add one after you confirm a match.</p>
+
+    <label for="notes">Notes <span>optional</span></label>
+    <textarea id="notes" name="notes" rows="3" placeholder="Prefers relaxed fits">{{ values.get('notes', '') }}</textarea>
+
+    <button class="button full-width" type="submit">Create person</button>
+  </form>
+{% endblock %}

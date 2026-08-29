@@ -1,0 +1,113 @@
+#!/usr/bin/env sh
+set -eu
+
+show_help() {
+  printf '%s\n' \
+    "Usage: ./install.sh [--profile NAME | --no-skill]" \
+    "" \
+    "  --profile NAME  Install the Size Note skill for a named Hermes profile." \
+    "  --no-skill      Install the app and CLI without a Hermes skill." \
+    "  --help          Show this help."
+}
+
+profile_name=""
+install_skill=1
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --profile)
+      [ "$#" -ge 2 ] || { printf '%s\n' "--profile requires a name." >&2; exit 2; }
+      profile_name=$2
+      shift 2
+      ;;
+    --no-skill)
+      install_skill=0
+      shift
+      ;;
+    --help|-h)
+      show_help
+      exit 0
+      ;;
+    *)
+      printf 'Unknown option: %s\n' "$1" >&2
+      show_help >&2
+      exit 2
+      ;;
+  esac
+done
+
+if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
+  printf '%s\n' "Docker Compose was not found." "Install Docker, then run this installer again." >&2
+  exit 1
+fi
+
+if ! command -v python3 >/dev/null 2>&1; then
+  printf '%s\n' "Python 3.11 or newer is required for the host CLI." >&2
+  exit 1
+fi
+if ! python3 -c 'import sys; raise SystemExit(sys.version_info < (3, 11))'; then
+  printf '%s\n' "Python 3.11 or newer is required for the host CLI." >&2
+  exit 1
+fi
+
+project_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+mkdir -p "$project_dir/data"
+
+if [ ! -f "$project_dir/.env" ]; then
+  cp "$project_dir/.env.example" "$project_dir/.env"
+fi
+
+printf '%s\n' "Building and starting Size Note..."
+docker compose --project-directory "$project_dir" -f "$project_dir/compose.yaml" up -d --build
+
+data_root=${XDG_DATA_HOME:-${HOME}/.local/share}
+cli_root="$data_root/size-note/cli"
+bin_root=${XDG_BIN_HOME:-${HOME}/.local/bin}
+python3 -m venv "$cli_root"
+"$cli_root/bin/python" -m pip install --quiet --upgrade "$project_dir"
+mkdir -p "$bin_root"
+cli_link="$bin_root/size-note"
+cli_target="$cli_root/bin/size-note"
+if [ -e "$cli_link" ] || [ -L "$cli_link" ]; then
+  existing_target=$(readlink "$cli_link" 2>/dev/null || true)
+  if [ "$existing_target" != "$cli_target" ]; then
+    printf 'Refusing to replace existing command: %s\n' "$cli_link" >&2
+    exit 1
+  fi
+else
+  ln -s "$cli_target" "$cli_link"
+fi
+
+if [ "$install_skill" -eq 1 ]; then
+  hermes_root=${HERMES_HOME:-${HOME}/.hermes}
+  if [ -n "$profile_name" ]; then
+    skill_root="$hermes_root/profiles/$profile_name/skills/size-note"
+  else
+    skill_root="$hermes_root/skills/size-note"
+  fi
+  mkdir -p "$skill_root"
+  cp "$project_dir/integrations/hermes/SKILL.md" "$skill_root/SKILL.md"
+  printf 'Installed Hermes skill at %s\n' "$skill_root"
+fi
+
+port=$(sed -n 's/^SIZE_NOTE_PORT=//p' "$project_dir/.env" | tail -n 1)
+port=${port:-3010}
+health_url="http://127.0.0.1:$port/health"
+attempt=0
+until python3 -c \
+  "import urllib.request; urllib.request.urlopen('$health_url', timeout=2)" \
+  >/dev/null 2>&1; do
+  attempt=$((attempt + 1))
+  if [ "$attempt" -ge 30 ]; then
+    printf '%s\n' "Size Note did not become healthy. Run docker compose logs for details." >&2
+    exit 1
+  fi
+  sleep 1
+done
+
+printf '%s\n' \
+  "" \
+  "Size Note is ready." \
+  "Website: http://127.0.0.1:$port" \
+  "CLI: $bin_root/size-note health" \
+  "Data: $project_dir/data/size-note.db"

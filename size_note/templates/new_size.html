@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Add a size for {{ person.name }} · Size Note{% endblock %}
+{% block content %}
+  <a class="back-link" href="{{ url_for('person_detail', person_id=person.id) }}">← {{ person.name }}</a>
+  <section class="page-heading">
+    <p class="eyebrow">New size</p>
+    <h1>What fits {{ person.name }}?</h1>
+    <p>Brand and fit details are optional. Re-entering the same size marks it as checked today.</p>
+  </section>
+
+  {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
+  <form class="form-card" action="{{ url_for('save_size_web', person_id=person.id) }}" method="post">
+    <div class="two-column">
+      <div>
+        <label for="item">Item</label>
+        <input id="item" name="item" list="items" value="{{ values.get('item', '') }}" placeholder="Shoes" required autofocus>
+        <datalist id="items">
+          <option value="Shoes"><option value="T-shirt"><option value="Trousers">
+          <option value="Jacket"><option value="Dress"><option value="Ring">
+          <option value="Hat"><option value="Gloves"><option value="Belt">
+        </datalist>
+      </div>
+      <div>
+        <label for="size">Size</label>
+        <input id="size" name="size" value="{{ values.get('size', '') }}" placeholder="15 cm or M" required>
+      </div>
+    </div>
+
+    <label for="system">Sizing system <span>optional</span></label>
+    <input id="system" name="system" value="{{ values.get('system', '') }}" placeholder="JP, AU, EU, Universal">
+
+    <details class="optional-fields">
+      <summary>Brand and fit details <span>optional</span></summary>
+      <div class="details-fields">
+        <label for="brand">Brand</label>
+        <input id="brand" name="brand" value="{{ values.get('brand', '') }}" placeholder="Uniqlo">
+
+        <label for="model">Model</label>
+        <input id="model" name="model" value="{{ values.get('model', '') }}" placeholder="574">
+
+        <label for="fit_notes">Fit notes</label>
+        <input id="fit_notes" name="fit_notes" value="{{ values.get('fit_notes', '') }}" placeholder="Wide fit, slightly loose">
+
+        <label for="measured_on">Measured or tried on</label>
+        <input id="measured_on" name="measured_on" type="date" value="{{ values.get('measured_on', '') }}">
+
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" rows="3">{{ values.get('notes', '') }}</textarea>
+      </div>
+    </details>
+
+    <button class="button full-width" type="submit">Save size</button>
+  </form>
+{% endblock %}

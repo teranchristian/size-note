@@ -1,0 +1,23 @@
+services:
+  app:
+    build:
+      context: .
+    image: size-note:local
+    restart: unless-stopped
+    environment:
+      SIZE_NOTE_DATABASE_URL: sqlite:////data/size-note.db
+      SIZE_NOTE_AUTO_CREATE_SCHEMA: "false"
+    ports:
+      - "127.0.0.1:${SIZE_NOTE_PORT:-3010}:8000"
+    volumes:
+      - ./data:/data
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s

@@ -1,0 +1,259 @@
+import json
+import os
+from typing import Annotated, Any
+
+import httpx
+import typer
+
+app = typer.Typer(
+    name="size-note",
+    help="Remember and retrieve clothing, footwear, and wearable sizes.",
+    no_args_is_help=True,
+)
+
+
+def _base_url(value: str | None) -> str:
+    return (value or os.getenv("SIZE_NOTE_URL") or "http://127.0.0.1:3010").rstrip("/")
+
+
+def _request(method: str, url: str, **kwargs: Any) -> Any:
+    try:
+        # Size Note is normally local. Ignoring ambient proxy settings prevents
+        # localhost requests from being routed through a host-wide HTTP/SOCKS proxy.
+        with httpx.Client(timeout=10.0, trust_env=False) as client:
+            response = client.request(method, url, **kwargs)
+        response.raise_for_status()
+    except httpx.RequestError:
+        typer.echo(
+            json.dumps(
+                {
+                    "status": "unavailable",
+                    "detail": "Size Note is not reachable. Check that the container is running.",
+                }
+            )
+        )
+        raise typer.Exit(code=1) from None
+    except httpx.HTTPStatusError as exc:
+        try:
+            detail = exc.response.json()
+        except ValueError:
+            detail = {"detail": exc.response.text}
+        typer.echo(json.dumps({"status": "error", **detail}))
+        raise typer.Exit(code=1) from None
+    return response.json()
+
+
+def _resolve(base_url: str, person: str) -> dict[str, Any]:
+    return _request("POST", f"{base_url}/api/v1/people/resolve", json={"name": person})
+
+
+def _emit(payload: Any, *, json_output: bool, human: str | None = None) -> None:
+    if json_output:
+        typer.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+    elif human:
+        typer.echo(human)
+    else:
+        typer.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
+@app.command("person-add")
+def person_add(
+    name: Annotated[str, typer.Argument(help="Canonical display name")],
+    growth_stage: Annotated[
+        str, typer.Option("--growth-stage", help="adult or child")
+    ] = "adult",
+    alias: Annotated[
+        list[str] | None, typer.Option("--alias", help="Repeat for multiple aliases")
+    ] = None,
+    notes: Annotated[str | None, typer.Option("--notes")] = None,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+    url: Annotated[str | None, typer.Option("--url", envvar="SIZE_NOTE_URL")] = None,
+) -> None:
+    """Create a person explicitly."""
+    if growth_stage not in {"adult", "child"}:
+        raise typer.BadParameter("growth stage must be adult or child")
+    payload = _request(
+        "POST",
+        f"{_base_url(url)}/api/v1/people",
+        json={
+            "name": name,
+            "growth_stage": growth_stage,
+            "aliases": alias or [],
+            "notes": notes,
+        },
+    )
+    _emit(payload, json_output=json_output, human=f"Created {payload['name']}.")
+
+
+@app.command()
+def remember(
+    person: Annotated[str, typer.Option("--person", help="Name or alias")],
+    item: Annotated[str, typer.Option("--item")],
+    size: Annotated[str, typer.Option("--size")],
+    system: Annotated[str | None, typer.Option("--system")] = None,
+    brand: Annotated[str | None, typer.Option("--brand")] = None,
+    model: Annotated[str | None, typer.Option("--model")] = None,
+    fit_notes: Annotated[str | None, typer.Option("--fit-notes")] = None,
+    notes: Annotated[str | None, typer.Option("--notes")] = None,
+    confirm_person_id: Annotated[
+        str | None,
+        typer.Option(
+            "--confirm-person-id",
+            help="Stable ID selected by the user after a suggested match",
+        ),
+    ] = None,
+    remember_alias: Annotated[
+        bool,
+        typer.Option(
+            "--remember-alias",
+            help="Save --person as an alias after explicit confirmation",
+        ),
+    ] = False,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+    url: Annotated[str | None, typer.Option("--url", envvar="SIZE_NOTE_URL")] = None,
+) -> None:
+    """Save or verify a person's size without silently guessing their identity."""
+    base_url = _base_url(url)
+    person_id = confirm_person_id
+    if person_id is None:
+        resolution = _resolve(base_url, person)
+        if resolution["status"] not in {"exact_match", "alias_match"}:
+            candidate = resolution.get("candidates", [{}])[0]
+            if resolution["status"] == "confirmation_required" and candidate:
+                human = (
+                    f"Did you mean {candidate['name']}? "
+                    "Confirmation required; nothing was saved."
+                )
+            elif resolution["status"] == "multiple_matches":
+                human = "Several people may match. Confirmation required; nothing was saved."
+            else:
+                human = f'No person matched "{person}". Create the person first.'
+            _emit(resolution, json_output=json_output, human=human)
+            return
+        person_id = resolution["candidates"][0]["id"]
+    elif remember_alias:
+        _request(
+            "POST",
+            f"{base_url}/api/v1/people/{person_id}/aliases",
+            json={"alias": person},
+        )
+
+    result = _request(
+        "POST",
+        f"{base_url}/api/v1/sizes",
+        json={
+            "person_id": person_id,
+            "item": item,
+            "size": size,
+            "system": system,
+            "brand": brand,
+            "model": model,
+            "fit_notes": fit_notes,
+            "notes": notes,
+        },
+    )
+    record = result["record"]
+    system_text = f" {record['system']}" if record.get("system") else ""
+    _emit(
+        result,
+        json_output=json_output,
+        human=f"{result['action'].title()}: {record['item']} {record['size']}{system_text}.",
+    )
+
+
+@app.command("get")
+def get_sizes(
+    person: Annotated[str, typer.Option("--person", help="Name or alias")],
+    current_only: Annotated[bool, typer.Option("--current-only")] = False,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+    url: Annotated[str | None, typer.Option("--url", envvar="SIZE_NOTE_URL")] = None,
+) -> None:
+    """Retrieve sizes for an exactly resolved person."""
+    base_url = _base_url(url)
+    resolution = _resolve(base_url, person)
+    if resolution["status"] not in {"exact_match", "alias_match"}:
+        _emit(
+            resolution,
+            json_output=json_output,
+            human="The person could not be resolved safely. Nothing was retrieved.",
+        )
+        return
+
+    candidate = resolution["candidates"][0]
+    records = _request(
+        "GET",
+        f"{base_url}/api/v1/people/{candidate['id']}/sizes",
+        params={"history": str(not current_only).lower()},
+    )
+    all_reviews = _request("GET", f"{base_url}/api/v1/reviews")
+    reviews = [entry for entry in all_reviews if entry["person_id"] == candidate["id"]]
+    review_status = {entry["size_id"]: entry["status"] for entry in reviews}
+    payload = {
+        "status": "ok",
+        "person": candidate,
+        "sizes": records,
+        "reviews": reviews,
+    }
+    if not records:
+        human = f"No sizes are saved for {candidate['name']}."
+    else:
+        lines = [f"{candidate['name']}:"]
+        for record in records:
+            marker = "" if record["is_current"] else " (previous)"
+            system_text = f" {record['system']}" if record.get("system") else ""
+            brand_text = f" · {record['brand']}" if record.get("brand") else ""
+            review_text = (
+                f" · {review_status[record['id']]}"
+                if review_status.get(record["id"]) in {"due", "review_soon"}
+                else ""
+            )
+            lines.append(
+                f"- {record['item']}: "
+                f"{record['size']}{system_text}{brand_text}{review_text}{marker}"
+            )
+        human = "\n".join(lines)
+    _emit(payload, json_output=json_output, human=human)
+
+
+@app.command()
+def people(
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+    url: Annotated[str | None, typer.Option("--url", envvar="SIZE_NOTE_URL")] = None,
+) -> None:
+    """List people and their aliases."""
+    payload = _request("GET", f"{_base_url(url)}/api/v1/people")
+    human = "\n".join(
+        f"- {person['name']}"
+        + (f" ({', '.join(person['aliases'])})" if person["aliases"] else "")
+        for person in payload
+    ) or "No people have been added."
+    _emit(payload, json_output=json_output, human=human)
+
+
+@app.command()
+def review(
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+    url: Annotated[str | None, typer.Option("--url", envvar="SIZE_NOTE_URL")] = None,
+) -> None:
+    """List age-aware size review dates for children."""
+    payload = _request("GET", f"{_base_url(url)}/api/v1/reviews")
+    attention = [entry for entry in payload if entry["status"] != "current"]
+    human = "\n".join(
+        f"- {entry['person_name']} · {entry['item']} {entry['size']}: {entry['status']}"
+        for entry in attention
+    ) or "No sizes need review."
+    _emit(payload, json_output=json_output, human=human)
+
+
+@app.command()
+def health(
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+    url: Annotated[str | None, typer.Option("--url", envvar="SIZE_NOTE_URL")] = None,
+) -> None:
+    """Check whether the Size Note service is reachable."""
+    payload = _request("GET", f"{_base_url(url)}/health")
+    _emit(payload, json_output=json_output, human=f"Size Note {payload['version']} is healthy.")
+
+
+if __name__ == "__main__":
+    app()

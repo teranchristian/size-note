@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ person.name }} · Size Note{% endblock %}
+{% block content %}
+  <a class="back-link" href="{{ url_for('home') }}">← People</a>
+  <section class="profile-heading">
+    <span class="avatar large">{{ person.name[0]|upper }}</span>
+    <div>
+      <p class="eyebrow">{{ person.growth_stage|title }}</p>
+      <h1>{{ person.name }}</h1>
+      {% if person.aliases %}<p>Also known as {{ person.aliases|map(attribute='alias')|join(', ') }}</p>{% endif %}
+    </div>
+  </section>
+
+  {% if person.notes %}<div class="notes-card"><strong>Notes</strong><p>{{ person.notes }}</p></div>{% endif %}
+
+  <div class="section-heading">
+    <div><p class="eyebrow">Current sizes</p><h2>What fits now</h2></div>
+    <a class="small-button" href="{{ url_for('new_size', person_id=person.id) }}">Add size</a>
+  </div>
+
+  {% if current_sizes %}
+    <div class="size-list">
+      {% for record in current_sizes %}
+        {% set review = reviews.get(record.id) %}
+        <article class="size-card">
+          <div class="size-card-main">
+            <div>
+              <p class="item-name">{{ record.item }}</p>
+              <p class="size-value">{{ record.size_value }}{% if record.size_system %} <span>{{ record.size_system }}</span>{% endif %}</p>
+            </div>
+            {% if review and review.status != 'current' %}
+              <span class="status {{ review.status }}">{% if review.status == 'due' %}Review now{% else %}Review soon{% endif %}</span>
+            {% else %}
+              <span class="status current">Current</span>
+            {% endif %}
+          </div>
+          {% if record.brand or record.model %}<p class="metadata">{{ record.brand or '' }}{% if record.brand and record.model %} · {% endif %}{{ record.model or '' }}</p>{% endif %}
+          {% if record.fit_notes %}<p class="fit-note">{{ record.fit_notes }}</p>{% endif %}
+          <div class="verification-row">
+            <p class="verified">Checked {{ record.verified_at.strftime('%d %b %Y') }}</p>
+            <form action="{{ url_for('verify_size_web', person_id=person.id, size_id=record.id) }}" method="post">
+              <button type="submit">Still correct</button>
+            </form>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-inline">
+      <p>No sizes yet.</p>
+      <a href="{{ url_for('new_size', person_id=person.id) }}">Record the first size</a>
+    </div>
+  {% endif %}
+
+  <details class="details-card">
+    <summary>Aliases</summary>
+    <form class="inline-form top-gap" action="{{ url_for('confirm_alias_web', person_id=person.id) }}" method="post">
+      <input name="alias" aria-label="New alias" placeholder="Add a nickname" required>
+      <button type="submit">Add</button>
+    </form>
+  </details>
+
+  {% if history %}
+    <details class="details-card">
+      <summary>Previous sizes ({{ history|length }})</summary>
+      <div class="history-list">
+        {% for record in history %}
+          <div><strong>{{ record.item }} · {{ record.size_value }}</strong><span>{{ record.size_system or 'No system' }} · checked {{ record.verified_at.strftime('%d %b %Y') }}</span></div>
+        {% endfor %}
+      </div>
+    </details>
+  {% endif %}
+{% endblock %}

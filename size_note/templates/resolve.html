@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Confirm person · Size Note{% endblock %}
+{% block content %}
+  <a class="back-link" href="{{ url_for('home') }}">← People</a>
+  <section class="page-heading">
+    <p class="eyebrow">Safe matching</p>
+    <h1>Who did you mean?</h1>
+    <p>Size Note will not silently add information to the wrong person.</p>
+  </section>
+
+  {% if resolution.candidates %}
+    <div class="candidate-list">
+      {% for candidate in resolution.candidates %}
+        <article class="candidate-card">
+          <span class="avatar">{{ candidate.person.name[0]|upper }}</span>
+          <div><strong>{{ candidate.person.name }}</strong><span>Similar to “{{ resolution.query }}”</span></div>
+          <form action="{{ url_for('confirm_alias_web', person_id=candidate.person.id) }}" method="post">
+            <input type="hidden" name="alias" value="{{ resolution.query }}">
+            <button type="submit">Yes, use this person</button>
+          </form>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <h2>No matching person</h2>
+      <p>Create “{{ resolution.query }}” as a new person if this is someone new.</p>
+      <a class="button" href="{{ url_for('new_person') }}">Add a person</a>
+    </div>
+  {% endif %}
+{% endblock %}

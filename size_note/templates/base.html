@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#17483d">
+    <title>{% block title %}Size Note{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/app.css') }}">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="{{ url_for('home') }}" aria-label="Size Note home">
+        <span class="brand-mark">SN</span>
+        <span>Size Note</span>
+      </a>
+      <a class="header-action" href="{{ url_for('new_person') }}">Add person</a>
+    </header>
+
+    <main class="page-shell">
+      {% block content %}{% endblock %}
+    </main>
+
+    <nav class="bottom-nav" aria-label="Main navigation">
+      <a href="{{ url_for('home') }}"><span aria-hidden="true">●</span>People</a>
+      <a href="{{ url_for('new_person') }}"><span aria-hidden="true">＋</span>Add</a>
+      <a href="{{ url_for('reviews') }}"><span aria-hidden="true">✓</span>Review</a>
+    </nav>
+  </body>
+</html>
