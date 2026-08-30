@@ -38,7 +38,7 @@
           <span class="person-copy">
             <strong>{{ person.name }}</strong>
             <span>
-              {{ person.growth_stage|title }}
+              {{ growth_stages[person.id]|title }}
               {% if person.aliases %} · {{ person.aliases|map(attribute='alias')|join(', ') }}{% endif %}
             </span>
           </span>

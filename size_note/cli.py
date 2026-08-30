@@ -1,9 +1,12 @@
 import json
 import os
+from datetime import UTC, datetime
 from typing import Annotated, Any
 
 import httpx
 import typer
+
+from size_note.birth import parse_birth
 
 app = typer.Typer(
     name="size-note",
@@ -70,6 +73,39 @@ def _parse_equivalent_options(values: list[str] | None) -> list[dict[str, str | 
     return result
 
 
+def _parse_birth_option(value: str) -> dict[str, int | None]:
+    try:
+        birth = parse_birth(value)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    return {
+        "birth_year": birth.year,
+        "birth_month": birth.month,
+        "birth_day": birth.day,
+    }
+
+
+def _format_birth(person: dict[str, Any]) -> str | None:
+    year = person.get("birth_year")
+    if year is None:
+        return None
+    month = person.get("birth_month")
+    day = person.get("birth_day")
+    if month is None:
+        return f"{year:04d}"
+    if day is None:
+        return f"{year:04d}-{month:02d}"
+    return f"{year:04d}-{month:02d}-{day:02d}"
+
+
+def _months_since(value: str) -> int:
+    checked = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if checked.tzinfo is None:
+        checked = checked.replace(tzinfo=UTC)
+    days = max(0, (datetime.now(UTC) - checked.astimezone(UTC)).days)
+    return days // 30
+
+
 def _resolved_person_id(
     base_url: str, person: str, *, json_output: bool, operation: str
 ) -> str | None:
@@ -88,8 +124,12 @@ def _resolved_person_id(
 def person_add(
     name: Annotated[str, typer.Argument(help="Canonical display name")],
     growth_stage: Annotated[
-        str, typer.Option("--growth-stage", help="adult or child")
-    ] = "adult",
+        str | None, typer.Option("--growth-stage", help="adult or child")
+    ] = None,
+    birth: Annotated[
+        str | None,
+        typer.Option("--birth", help="Known birth information: YYYY, YYYY-MM, or YYYY-MM-DD"),
+    ] = None,
     alias: Annotated[
         list[str] | None, typer.Option("--alias", help="Repeat for multiple aliases")
     ] = None,
@@ -98,17 +138,26 @@ def person_add(
     url: Annotated[str | None, typer.Option("--url", envvar="SIZE_NOTE_URL")] = None,
 ) -> None:
     """Create a person explicitly."""
-    if growth_stage not in {"adult", "child"}:
+    if growth_stage is not None and growth_stage not in {"adult", "child"}:
         raise typer.BadParameter("growth stage must be adult or child")
+    if growth_stage is None and birth is None:
+        raise typer.BadParameter(
+            "provide --growth-stage child/adult or --birth YYYY, YYYY-MM, or YYYY-MM-DD"
+        )
+
+    person_data: dict[str, Any] = {
+        "name": name,
+        "growth_stage": growth_stage,
+        "aliases": alias or [],
+        "notes": notes,
+    }
+    if birth is not None:
+        person_data.update(_parse_birth_option(birth))
+
     payload = _request(
         "POST",
         f"{_base_url(url)}/api/people",
-        json={
-            "name": name,
-            "growth_stage": growth_stage,
-            "aliases": alias or [],
-            "notes": notes,
-        },
+        json=person_data,
     )
     _emit(payload, json_output=json_output, human=f"Created {payload['name']}.")
 
@@ -121,14 +170,23 @@ def person_update(
     growth_stage: Annotated[
         str | None, typer.Option("--growth-stage", help="adult or child")
     ] = None,
+    birth: Annotated[
+        str | None,
+        typer.Option("--birth", help="Known birth information: YYYY, YYYY-MM, or YYYY-MM-DD"),
+    ] = None,
+    clear_birth: Annotated[bool, typer.Option("--clear-birth")] = False,
     json_output: Annotated[bool, typer.Option("--json")] = False,
     url: Annotated[str | None, typer.Option("--url", envvar="SIZE_NOTE_URL")] = None,
 ) -> None:
-    """Update an exactly resolved person's name, notes, or growth stage."""
-    if name is None and notes is None and growth_stage is None:
-        raise typer.BadParameter("provide --name, --notes, and/or --growth-stage")
+    """Update an exactly resolved person's profile."""
+    if all(value is None for value in (name, notes, growth_stage, birth)) and not clear_birth:
+        raise typer.BadParameter(
+            "provide --name, --notes, --growth-stage, --birth, and/or --clear-birth"
+        )
     if growth_stage is not None and growth_stage not in {"adult", "child"}:
         raise typer.BadParameter("growth stage must be adult or child")
+    if birth is not None and clear_birth:
+        raise typer.BadParameter("use either --birth or --clear-birth")
 
     base_url = _base_url(url)
     person_id = _resolved_person_id(
@@ -144,6 +202,11 @@ def person_update(
         changes["notes"] = notes
     if growth_stage is not None:
         changes["growth_stage"] = growth_stage
+    if birth is not None:
+        changes.update(_parse_birth_option(birth))
+    elif clear_birth:
+        changes.update({"birth_year": None, "birth_month": None, "birth_day": None})
+
     payload = _request(
         "PATCH",
         f"{base_url}/api/people/{person_id}",
@@ -462,11 +525,13 @@ def people(
 ) -> None:
     """List people and their aliases."""
     payload = _request("GET", f"{_base_url(url)}/api/people")
-    human = "\n".join(
-        f"- {person['name']}"
-        + (f" ({', '.join(person['aliases'])})" if person["aliases"] else "")
-        for person in payload
-    ) or "No people have been added."
+    lines = []
+    for person in payload:
+        aliases = f" ({', '.join(person['aliases'])})" if person["aliases"] else ""
+        birth = _format_birth(person)
+        birth_text = f" · born {birth}" if birth else ""
+        lines.append(f"- {person['name']}{aliases} · {person['growth_stage']}{birth_text}")
+    human = "\n".join(lines) or "No people have been added."
     _emit(payload, json_output=json_output, human=human)
 
 
@@ -478,10 +543,21 @@ def review(
     """List age-aware size review dates for children."""
     payload = _request("GET", f"{_base_url(url)}/api/reviews")
     attention = [entry for entry in payload if entry["status"] != "current"]
-    human = "\n".join(
-        f"- {entry['person_name']} · {entry['item']} {entry['size']}: {entry['status']}"
-        for entry in attention
-    ) or "No sizes need review."
+    lines = []
+    for entry in attention:
+        age = entry.get("person_age_years")
+        if age is None:
+            age_text = ""
+        else:
+            qualifier = "about " if entry.get("person_age_approximate") else ""
+            age_text = f" · {qualifier}{age} years old"
+        months = _months_since(entry["verified_at"])
+        checked_text = f" · checked {months} month{'s' if months != 1 else ''} ago"
+        lines.append(
+            f"- {entry['person_name']} · {entry['item']} {entry['size']}: "
+            f"{entry['status']}{age_text}{checked_text}"
+        )
+    human = "\n".join(lines) or "No sizes need review."
     _emit(payload, json_output=json_output, human=human)
 
 

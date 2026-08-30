@@ -17,7 +17,10 @@ def create_person(client):
     def factory(
         name: str = "Alexandra",
         *,
-        growth_stage: str = "adult",
+        growth_stage: str | None = "adult",
+        birth_year: int | None = None,
+        birth_month: int | None = None,
+        birth_day: int | None = None,
         aliases: list[str] | None = None,
         notes: str | None = None,
     ) -> dict:
@@ -26,6 +29,9 @@ def create_person(client):
             json={
                 "name": name,
                 "growth_stage": growth_stage,
+                "birth_year": birth_year,
+                "birth_month": birth_month,
+                "birth_day": birth_day,
                 "aliases": aliases or [],
                 "notes": notes,
             },

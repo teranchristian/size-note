@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
+from size_note.birth import birth_parts, effective_growth_stage, parse_birth
 from size_note.database import get_session
 from size_note.exceptions import DomainError
 from size_note.schemas import PersonCreate, PersonUpdate, SizeCreate, SizeUpdate
@@ -62,6 +63,31 @@ def _parse_equivalents(value: str) -> list[dict[str, str | None]]:
     return result
 
 
+def _parse_birth_form(value: str) -> dict[str, int | None]:
+    if not value.strip():
+        return {"birth_year": None, "birth_month": None, "birth_day": None}
+    birth = parse_birth(value)
+    return {
+        "birth_year": birth.year,
+        "birth_month": birth.month,
+        "birth_day": birth.day,
+    }
+
+
+def _birth_text(person) -> str:
+    birth = birth_parts(person.birth_year, person.birth_month, person.birth_day)
+    return birth.display() if birth else ""
+
+
+def _person_stage(person) -> str:
+    return effective_growth_stage(
+        person.growth_stage,
+        person.birth_year,
+        person.birth_month,
+        person.birth_day,
+    )
+
+
 def _size_form_error(exc: DomainError | ValueError) -> str:
     if isinstance(exc, DomainError):
         return exc.message
@@ -90,7 +116,11 @@ def home(request: Request, session: SessionDependency) -> HTMLResponse:
     return render(
         request,
         "home.html",
-        {"people": people, "attention_count": attention_count},
+        {
+            "people": people,
+            "growth_stages": {person.id: _person_stage(person) for person in people},
+            "attention_count": attention_count,
+        },
     )
 
 
@@ -121,32 +151,46 @@ def create_person_web(
     request: Request,
     session: SessionDependency,
     name: Annotated[str, Form(min_length=1, max_length=160)],
-    growth_stage: Annotated[str, Form()] = "adult",
+    growth_stage: Annotated[str, Form()] = "",
+    birth: Annotated[str, Form()] = "",
     aliases: Annotated[str, Form()] = "",
     notes: Annotated[str, Form()] = "",
 ) -> HTMLResponse | RedirectResponse:
     values = {
         "name": name,
         "growth_stage": growth_stage,
+        "birth": birth,
         "aliases": aliases,
         "notes": notes,
     }
+    if not growth_stage and not birth.strip():
+        return render(
+            request,
+            "new_person.html",
+            {
+                "values": values,
+                "error": "Choose child or adult, or enter birth information.",
+            },
+            status_code=400,
+        )
     try:
+        birth_data = _parse_birth_form(birth)
         person = create_person(
             session,
             PersonCreate(
                 name=name,
-                growth_stage=growth_stage,
+                growth_stage=growth_stage or None,
                 aliases=[alias.strip() for alias in aliases.split(",") if alias.strip()],
                 notes=notes or None,
+                **birth_data,
             ),
         )
     except (DomainError, ValueError) as exc:
-        message = exc.message if isinstance(exc, DomainError) else "Please check the form."
+        message = exc.message if isinstance(exc, DomainError) else str(exc)
         return render(
             request,
             "new_person.html",
-            {"values": values, "error": message},
+            {"values": values, "error": message or "Please check the form."},
             status_code=400,
         )
     return RedirectResponse(
@@ -170,6 +214,8 @@ def person_detail(
         "person_detail.html",
         {
             "person": person,
+            "growth_stage": _person_stage(person),
+            "birth_text": _birth_text(person),
             "current_sizes": [record for record in records if record.is_current],
             "history": [record for record in records if not record.is_current],
             "reviews": reviews,
@@ -184,7 +230,8 @@ def edit_person(
     person = get_person(session, person_id)
     values = {
         "name": person.name,
-        "growth_stage": person.growth_stage,
+        "growth_stage": _person_stage(person),
+        "birth": _birth_text(person),
         "notes": person.notes or "",
     }
     return render(
@@ -201,22 +248,38 @@ def edit_person_web(
     session: SessionDependency,
     name: Annotated[str, Form(min_length=1, max_length=160)],
     growth_stage: Annotated[str, Form()],
+    birth: Annotated[str, Form()] = "",
     notes: Annotated[str, Form()] = "",
 ) -> HTMLResponse | RedirectResponse:
     person = get_person(session, person_id)
-    values = {"name": name, "growth_stage": growth_stage, "notes": notes}
+    values = {
+        "name": name,
+        "growth_stage": growth_stage,
+        "birth": birth,
+        "notes": notes,
+    }
     try:
+        birth_data = _parse_birth_form(birth)
         updated = update_person(
             session,
             person_id,
-            PersonUpdate(name=name, growth_stage=growth_stage, notes=notes),
+            PersonUpdate(
+                name=name,
+                growth_stage=growth_stage,
+                notes=notes,
+                **birth_data,
+            ),
         )
     except (DomainError, ValueError) as exc:
-        message = exc.message if isinstance(exc, DomainError) else "Please check the form."
+        message = exc.message if isinstance(exc, DomainError) else str(exc)
         return render(
             request,
             "edit_person.html",
-            {"person": person, "values": values, "error": message},
+            {
+                "person": person,
+                "values": values,
+                "error": message or "Please check the form.",
+            },
             status_code=400,
         )
     return RedirectResponse(

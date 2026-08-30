@@ -1,7 +1,7 @@
 ---
 name: size-note
 description: Save, update, retrieve, correct, or delete clothing, footwear, ring, hat, and other wearable sizes for people using the local Size Note CLI. Use when the user asks Hermes to remember what fits someone, check a saved size, correct a mistake, or remove Size Note data.
-version: 0.2.1
+version: 0.3.0
 license: MIT
 platforms: [linux, macos]
 prerequisites:
@@ -15,7 +15,7 @@ metadata:
 
 # Size Note
 
-Use the `size-note` CLI with `--json`. Size Note owns person matching, aliases, person notes, current sizes, and history; do not substitute conversational memory for it.
+Use the `size-note` CLI with `--json`. Size Note owns person matching, aliases, structured birth information, person notes, current sizes, history, and review timing; do not substitute conversational memory for it.
 
 Before the first operation in a session, run `size-note health --json`. If it is unavailable, tell the user that Size Note is not running or the CLI is not installed. Do not fall back to conversational memory.
 
@@ -23,13 +23,28 @@ Before the first operation in a session, run `size-note health --json`. If it is
 
 Keep person context separate from size-specific context:
 
-- **Person notes**: relationship, birth year/date, general preferences, or stable facts about the person. Examples: `my son`, `born in 2024`, `prefers soft fabrics`.
+- **Birth information** (`person-add/person-update --birth`): a known birth year, year-month, or exact date. Examples: `2024`, `2024-05`, `2024-05-12`.
+- **Person notes**: relationship, general preferences, or other stable person facts. Examples: `my son`, `prefers soft fabrics`.
 - **Size notes** (`remember --notes`): context about that specific size record. Examples: `bought in Tokyo`, `measured at school`, `winter uniform`.
 - **Fit notes** (`remember --fit-notes`): observations about how the item fits. Examples: `runs small`, `a little loose`, `sleeves are short`.
 
-Never store relationship or birth information in a size record just because it appeared in the same sentence as a size.
+Never store known birth information in notes when the structured `--birth` field can represent it. Never store relationship or birth information in a size record just because it appeared in the same sentence as a size.
 
 If a user gives both person context and a size in one request, save/update the person context separately and then save the size.
+
+## Birth information and growth stage
+
+Birth information is optional and may be partial. Accept exactly what the user knows:
+
+- `2024` when only the year is known.
+- `2024-05` when year and month are known.
+- `2024-05-12` when the full date is known.
+
+Never invent an unknown month or day. Do not turn `2024` into `2024-01-01`, and do not turn `2024-05` into `2024-05-01`.
+
+When birth information exists, Size Note uses it to determine the effective child/adult stage and review timing. Partial dates are handled conservatively: when the exact age is uncertain, Size Note uses the younger possible age. A person becomes effectively adult only when they are definitely 18. For example, someone stored only as born in `2008` remains child through 2026 and becomes adult from 1 January 2027 without editing the record.
+
+The saved `growth_stage` is a fallback for people without birth information. Do not repeatedly update a person's stored stage just because a birthday passed.
 
 ## One physical fit = one size record
 
@@ -78,28 +93,41 @@ Never silently choose a similar person.
 
 ## Create a person
 
-Only create a person after the user confirms that no existing candidate is correct:
+Only create a person after the user confirms that no existing candidate is correct.
+
+If the user supplied birth information, it is enough to infer the effective child/adult stage; do not ask the stage again:
 
 ```bash
-size-note person-add "NAME" --growth-stage adult --json
+size-note person-add "Haru" --birth "2024" --notes "My son" --json
 ```
 
-Use `child` when the user explicitly says the person is a child or wants growth-aware reviews. Otherwise use `adult`; do not infer age from relationship context.
-
-When the user supplies person-level context during creation, put it in `--notes`:
+If the user explicitly said the person is an adult, create them as an adult. Do not ask for a birth date unless the user already supplied one:
 
 ```bash
-size-note person-add "Haru" --growth-stage child --notes "My son; born in 2024" --json
+size-note person-add "Alex" --growth-stage adult --json
 ```
+
+If the user explicitly said the person is a child but gave no birth information, birth information is useful for better reminders. Ask once whether they know the birth year/date, making clear that it is optional. If they do not know it or prefer not to provide it, create the child anyway:
+
+```bash
+size-note person-add "Sam" --growth-stage child --json
+```
+
+If neither birth information nor an explicit child/adult stage is available, ask **whether the person is a child or an adult before creating them**. Do not silently default to adult.
+
+Do not infer age only from a relationship such as `my son`, `my daughter`, `my friend`, or `my mother`.
 
 ## Update a person
 
-For an existing person, use `person-update` for person-level corrections. It can change the display name, notes, or growth stage:
+For an existing person, use `person-update` for person-level corrections. It can change the display name, notes, growth-stage fallback, or birth information:
 
 ```bash
-size-note person-update --person "Haru" --notes "My son; born in 2024" --json
-size-note person-update --person "Haru" --name "Haru Teran" --growth-stage child --json
+size-note person-update --person "Haru" --birth "2024-05" --json
+size-note person-update --person "Haru" --notes "My son; prefers soft fabrics" --json
+size-note person-update --person "Haru" --name "Haru Teran" --json
 ```
+
+Use `--clear-birth` only when the user explicitly wants the stored birth information removed.
 
 `person-update` uses the same safe name resolution rules as retrieval. If the result is `confirmation_required`, `multiple_matches`, or `not_found`, do not guess or update anything; ask the user to resolve the person first.
 
@@ -157,10 +185,26 @@ Mention the primary sizing system, confirmed equivalents, and brand when present
 
 If an item is due for review, state that the saved value may be outdated instead of presenting it as certainly current.
 
-To check all child review reminders, run:
+## Review reminders
+
+Run:
 
 ```bash
 size-note review --json
 ```
+
+When birth information is known, Size Note uses conservative age bands for automatic child reviews:
+
+- younger than 3: every 90 days
+- 3 through 6: every 120 days
+- 7 through 12: every 180 days
+- 13 through 17: every 270 days
+- definitely 18 or older: no automatic child review
+
+If a child has no birth information, Size Note falls back to the original generic rule: shoes every 90 days and other sizes every 180 days.
+
+When reporting a due or soon review, include the person's exact or approximate age when returned and say roughly how long it has been since `verified_at`. Example: `Haru is about 2 years old. His T-shirt size was last checked 4 months ago, so it may be worth checking again.`
+
+A successful `Still correct` verification updates `verified_at`, restarting that specific size's review timer without creating history.
 
 Do not estimate size conversions unless Size Note explicitly returns an estimate. Size Note stores confirmed values only.

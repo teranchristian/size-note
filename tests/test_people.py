@@ -46,6 +46,36 @@ def test_names_and_aliases_cannot_point_to_different_people(client, create_perso
     assert response.json()["code"] == "person_identifier_conflict"
 
 
+def test_person_creation_requires_stage_or_birth_information(client):
+    response = client.post(
+        "/api/people",
+        json={"name": "Morgan", "aliases": [], "notes": None},
+    )
+
+    assert response.status_code == 422
+    assert "Choose child or adult" in response.text
+
+
+def test_birth_year_can_infer_child_without_fabricating_month_or_day(client):
+    response = client.post(
+        "/api/people",
+        json={
+            "name": "Haru",
+            "birth_year": 2024,
+            "aliases": [],
+            "notes": "My son",
+        },
+    )
+
+    assert response.status_code == 201
+    person = response.json()
+    assert person["growth_stage"] == "child"
+    assert person["birth_year"] == 2024
+    assert person["birth_month"] is None
+    assert person["birth_day"] is None
+    assert person["notes"] == "My son"
+
+
 def test_person_context_remains_free_form_notes(client, create_person):
     person = create_person("Sam", growth_stage="child", notes="Prefers soft fabrics")
 
@@ -59,15 +89,37 @@ def test_person_notes_can_be_updated_and_cleared(client, create_person):
 
     updated = client.patch(
         f"/api/people/{person['id']}",
-        json={"notes": "My son; born in 2024"},
+        json={"notes": "My son"},
     )
     assert updated.status_code == 200
-    assert updated.json()["notes"] == "My son; born in 2024"
+    assert updated.json()["notes"] == "My son"
     assert updated.json()["growth_stage"] == "child"
 
     cleared = client.patch(f"/api/people/{person['id']}", json={"notes": "   "})
     assert cleared.status_code == 200
     assert cleared.json()["notes"] is None
+
+
+def test_partial_birth_information_can_be_updated_and_cleared(client, create_person):
+    person = create_person("Haru", growth_stage="child")
+
+    updated = client.patch(
+        f"/api/people/{person['id']}",
+        json={"birth_year": 2024, "birth_month": 5, "birth_day": None},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["birth_year"] == 2024
+    assert updated.json()["birth_month"] == 5
+    assert updated.json()["birth_day"] is None
+
+    cleared = client.patch(
+        f"/api/people/{person['id']}",
+        json={"birth_year": None, "birth_month": None, "birth_day": None},
+    )
+    assert cleared.status_code == 200
+    assert cleared.json()["birth_year"] is None
+    assert cleared.json()["birth_month"] is None
+    assert cleared.json()["birth_day"] is None
 
 
 def test_person_name_and_growth_stage_can_be_corrected(client, create_person):

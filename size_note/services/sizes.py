@@ -5,6 +5,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from size_note.birth import approximate_age_years, review_interval_days
 from size_note.exceptions import ConflictError, NotFoundError
 from size_note.models import Person, SizeRecord, utc_now
 from size_note.normalization import clean_text, normalize, optional_text
@@ -24,6 +25,9 @@ class Review:
     record: SizeRecord
     due_at: datetime
     status: str
+    age_years: int | None
+    age_approximate: bool
+    interval_days: int
 
 
 SHOE_KEYS = {"shoe", "shoes", "footwear", "sneaker", "sneakers", "boot", "boots"}
@@ -245,24 +249,57 @@ def verify_size(
 
 def list_reviews(session: Session, *, now: datetime | None = None) -> list[Review]:
     comparison_time = _as_utc(now or utc_now())
+    today = comparison_time.date()
     rows = session.execute(
         select(SizeRecord, Person)
         .join(Person, SizeRecord.person_id == Person.id)
-        .where(SizeRecord.is_current.is_(True), Person.growth_stage == "child")
+        .where(SizeRecord.is_current.is_(True))
     ).all()
 
     reviews: list[Review] = []
     for record, person in rows:
-        interval = timedelta(days=90 if record.item_key in SHOE_KEYS else 180)
+        interval_days = review_interval_days(
+            person.growth_stage,
+            person.birth_year,
+            person.birth_month,
+            person.birth_day,
+            item_key=record.item_key,
+            shoe_keys=SHOE_KEYS,
+            today=today,
+        )
+        if interval_days is None:
+            continue
+
+        age_years = None
+        age_approximate = False
+        if person.birth_year is not None:
+            age_years = approximate_age_years(
+                person.birth_year,
+                person.birth_month,
+                person.birth_day,
+                today=today,
+            )
+            age_approximate = person.birth_month is None or person.birth_day is None
+
         verified_at = _as_utc(record.verified_at)
-        due_at = verified_at + interval
+        due_at = verified_at + timedelta(days=interval_days)
         if due_at <= comparison_time:
             status = "due"
         elif due_at <= comparison_time + timedelta(days=30):
             status = "review_soon"
         else:
             status = "current"
-        reviews.append(Review(person=person, record=record, due_at=due_at, status=status))
+        reviews.append(
+            Review(
+                person=person,
+                record=record,
+                due_at=due_at,
+                status=status,
+                age_years=age_years,
+                age_approximate=age_approximate,
+                interval_days=interval_days,
+            )
+        )
 
     priority = {"due": 0, "review_soon": 1, "current": 2}
     reviews.sort(key=lambda review: (priority[review.status], review.due_at, review.person.name))

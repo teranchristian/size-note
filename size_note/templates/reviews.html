@@ -4,7 +4,7 @@
   <section class="page-heading">
     <p class="eyebrow">Growth-aware</p>
     <h1>Size reviews</h1>
-    <p>Children’s shoes are suggested every 3 months and other sizes every 6 months.</p>
+    <p>When birth information is known, younger children are checked more often. Partial birth dates stay approximate and use the more cautious age band.</p>
   </section>
 
   {% if reviews %}
@@ -13,7 +13,13 @@
         <a class="review-card" href="{{ url_for('person_detail', person_id=review.person.id) }}">
           <div>
             <strong>{{ review.person.name }} · {{ review.record.item }}</strong>
-            <span>{{ review.record.size_value }}{% if review.record.size_system %} · {{ review.record.size_system }}{% endif %}</span>
+            <span>
+              {{ review.record.size_value }}{% if review.record.size_system %} · {{ review.record.size_system }}{% endif %}
+              {% if review.age_years is not none %}
+                · {% if review.age_approximate %}about {% endif %}{{ review.age_years }} years old
+              {% endif %}
+              · checked {{ review.record.verified_at.strftime('%d %b %Y') }}
+            </span>
           </div>
           <span class="status {{ review.status }}">
             {% if review.status == 'due' %}Due{% elif review.status == 'review_soon' %}Soon{% else %}Current{% endif %}
@@ -22,6 +28,6 @@
       {% endfor %}
     </div>
   {% else %}
-    <div class="empty-state"><h2>Nothing to review</h2><p>Child profiles with saved sizes will appear here.</p></div>
+    <div class="empty-state"><h2>Nothing to review</h2><p>Child profiles with saved sizes will appear here when review timing applies.</p></div>
   {% endif %}
 {% endblock %}

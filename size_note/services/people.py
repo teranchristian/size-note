@@ -5,7 +5,8 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from size_note.exceptions import ConflictError, NotFoundError
+from size_note.birth import effective_growth_stage, validate_birth_parts
+from size_note.exceptions import ConflictError, DomainError, NotFoundError
 from size_note.models import Person, PersonAlias
 from size_note.normalization import clean_text, normalize, optional_text
 from size_note.schemas import PersonCreate, PersonUpdate
@@ -49,10 +50,16 @@ def create_person(session: Session, data: PersonCreate) -> Person:
     normalized_name = normalize(data.name)
     _ensure_identifier_available(session, normalized_name)
 
+    growth_stage = data.growth_stage or effective_growth_stage(
+        "adult", data.birth_year, data.birth_month, data.birth_day
+    )
     person = Person(
         name=clean_text(data.name),
         normalized_name=normalized_name,
-        growth_stage=data.growth_stage,
+        growth_stage=growth_stage,
+        birth_year=data.birth_year,
+        birth_month=data.birth_month,
+        birth_day=data.birth_day,
         notes=optional_text(data.notes),
     )
     session.add(person)
@@ -91,6 +98,21 @@ def update_person(session: Session, person_id: str, data: PersonUpdate) -> Perso
 
     if "growth_stage" in data.model_fields_set and data.growth_stage is not None:
         person.growth_stage = data.growth_stage
+
+    birth_fields = {"birth_year", "birth_month", "birth_day"}
+    if data.model_fields_set & birth_fields:
+        year = data.birth_year if "birth_year" in data.model_fields_set else person.birth_year
+        month = (
+            data.birth_month if "birth_month" in data.model_fields_set else person.birth_month
+        )
+        day = data.birth_day if "birth_day" in data.model_fields_set else person.birth_day
+        try:
+            validate_birth_parts(year, month, day)
+        except ValueError as exc:
+            raise DomainError(str(exc), code="invalid_birth") from exc
+        person.birth_year = year
+        person.birth_month = month
+        person.birth_day = day
 
     if "notes" in data.model_fields_set:
         person.notes = optional_text(data.notes)

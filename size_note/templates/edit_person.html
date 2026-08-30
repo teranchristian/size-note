@@ -5,7 +5,7 @@
   <section class="page-heading">
     <p class="eyebrow">Edit person</p>
     <h1>Update {{ person.name }}</h1>
-    <p>Change the display name, growth stage, or person-level notes.</p>
+    <p>Change the display name, birth information, growth-stage fallback, or person-level notes.</p>
   </section>
 
   {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
@@ -25,10 +25,15 @@
           <span>Child<small>Growth-aware size review reminders</small></span>
         </label>
       </div>
+      <p class="field-help">Birth information takes precedence for review behavior. This choice is the fallback if birth information is missing.</p>
     </fieldset>
 
+    <label for="birth">Birth <span>optional</span></label>
+    <input id="birth" name="birth" value="{{ values.get('birth', '') }}" inputmode="numeric" placeholder="2024, 2024-05, or 2024-05-12">
+    <p class="field-help">Use YYYY, YYYY-MM, or YYYY-MM-DD. Leave blank to remove saved birth information.</p>
+
     <label for="notes">Person notes <span>optional</span></label>
-    <textarea id="notes" name="notes" rows="4" placeholder="Relationship, birth year, preferences...">{{ values.get('notes', '') }}</textarea>
+    <textarea id="notes" name="notes" rows="4" placeholder="Relationship, preferences, or other context...">{{ values.get('notes', '') }}</textarea>
 
     <button class="button full-width" type="submit">Save changes</button>
   </form>
