@@ -129,15 +129,19 @@ legend { font-size: 0.85rem; font-weight: 800; margin-bottom: 9px; }
 .alias-card-heading > span { color: var(--muted); font-size: 0.78rem; font-weight: 800; }
 .alias-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
 .alias-chip { background: var(--mint); border-radius: 999px; color: var(--green); font-size: 0.8rem; font-weight: 750; padding: 7px 10px; }
-.alias-add-form { margin-top: 14px; }
 .alias-empty { color: var(--muted); font-size: 0.82rem; font-style: italic; margin: 14px 0 0; }
-.alias-list { display: grid; gap: 10px; margin-top: 14px; }
-.alias-row { align-items: center; display: flex; gap: 9px; }
-.alias-edit-form { display: flex; flex: 1; gap: 9px; }
-.alias-edit-form input { min-height: 42px; }
-.alias-edit-form button { background: var(--green); border: 0; border-radius: 7px; color: white; font-weight: 750; padding: 0 15px; }
-.alias-row > form:last-child { flex: 0 0 auto; }
-.alias-remove { background: transparent; border: 0; color: var(--danger); font-size: 0.78rem; font-weight: 800; padding: 8px 0; }
+.alias-list { display: grid; gap: 12px; margin-top: 14px; }
+.alias-row { background: var(--paper); border: 1px solid var(--line); padding: 12px; }
+.alias-edit-form { display: grid; gap: 7px; }
+.alias-field-label { font-size: 0.78rem; font-weight: 800; }
+.alias-edit-controls { display: flex; gap: 9px; }
+.alias-edit-controls input { min-height: 44px; }
+.alias-edit-controls button { background: var(--green); border: 0; border-radius: 7px; color: white; font-weight: 750; padding: 0 15px; white-space: nowrap; }
+.alias-delete-form { display: flex; justify-content: flex-end; margin-top: 8px; }
+.alias-remove { background: transparent; border: 1px solid #efb8b3; border-radius: 7px; color: var(--danger); font-size: 0.78rem; font-weight: 800; padding: 9px 12px; }
+.alias-add-section { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 16px; }
+.alias-add-section > p { color: var(--muted); font-size: 0.8rem; margin: 5px 0 0; }
+.alias-add-form { margin-top: 10px; }
 .alias-error { margin: 14px 0 0; }
 .size-list { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .size-card { background: var(--card); border: 1px solid var(--line); padding: 18px; }
@@ -204,8 +208,9 @@ legend { font-size: 0.85rem; font-weight: 800; margin-bottom: 9px; }
   .candidate-card form { flex-basis: 100%; margin-left: 62px; }
   .candidate-card button { width: 100%; }
   .profile-heading h1 { font-size: 2.1rem; }
-  .alias-row { align-items: stretch; flex-direction: column; }
-  .alias-row > form:last-child { align-self: flex-end; }
+  .alias-edit-controls, .alias-add-form { flex-direction: column; }
+  .alias-edit-controls button, .alias-add-form button { min-height: 46px; width: 100%; }
+  .alias-delete-form, .alias-delete-form button { width: 100%; }
   .danger-zone { align-items: flex-start; flex-direction: column; }
   .confirm-actions { align-items: stretch; flex-direction: column; }
   .confirm-actions .button, .confirm-actions form, .confirm-actions button { width: 100%; }

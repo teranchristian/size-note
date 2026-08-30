@@ -121,6 +121,7 @@ def test_person_can_be_edited_from_web(client, create_person):
     assert page.status_code == 200
     assert "Edit person" in page.text
     assert "Old note" in page.text
+    assert "Save person" in page.text
 
     changed = client.post(
         edit_url,
@@ -146,15 +147,23 @@ def test_aliases_are_visible_editable_and_removable_from_web(client, create_pers
 
     detail = client.get(person_url)
     assert detail.status_code == 200
-    assert "Also known as me" in detail.text
     assert '<span class="alias-chip">me</span>' in detail.text
-    assert "Add alias" in detail.text
+    assert "Alternative names or phrases" in detail.text
+    assert "Add alias" not in detail.text
+    assert ">Manage<" not in detail.text
+    assert "Also known as" not in detail.text
     assert "nickname" not in detail.text.lower()
 
     edit = client.get(edit_url)
     assert edit.status_code == 200
     assert 'value="me"' in edit.text
     assert "Alternative names or phrases" in edit.text
+    assert "Update alias" in edit.text
+    assert "Delete alias" in edit.text
+    assert "Add alias" in edit.text
+    assert "Save person" in edit.text
+    assert "Save changes" not in edit.text
+    assert "nicknames" not in edit.text.lower()
     alias_match = re.search(r"/aliases/([^/]+)/edit", edit.text)
     assert alias_match is not None
     alias_id = alias_match.group(1)
