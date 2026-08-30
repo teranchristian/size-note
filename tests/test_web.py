@@ -1,3 +1,6 @@
+import re
+
+
 def test_mobile_web_flow_creates_person_and_size(client):
     home = client.get("/")
     assert home.status_code == 200
@@ -134,6 +137,59 @@ def test_person_can_be_edited_from_web(client, create_person):
     assert stored["name"] == "Haru"
     assert stored["growth_stage"] == "child"
     assert stored["notes"] == "My son; born in 2024"
+
+
+def test_aliases_are_visible_editable_and_removable_from_web(client, create_person):
+    person = create_person("Christian", aliases=["me"])
+    person_url = f"/people/{person['id']}"
+    edit_url = f"{person_url}/edit"
+
+    detail = client.get(person_url)
+    assert detail.status_code == 200
+    assert "Also known as me" in detail.text
+    assert '<span class="alias-chip">me</span>' in detail.text
+    assert "Add alias" in detail.text
+    assert "nickname" not in detail.text.lower()
+
+    edit = client.get(edit_url)
+    assert edit.status_code == 200
+    assert 'value="me"' in edit.text
+    assert "Alternative names or phrases" in edit.text
+    alias_match = re.search(r"/aliases/([^/]+)/edit", edit.text)
+    assert alias_match is not None
+    alias_id = alias_match.group(1)
+
+    renamed = client.post(
+        f"{person_url}/aliases/{alias_id}/edit",
+        data={"alias": "myself"},
+        follow_redirects=False,
+    )
+    assert renamed.status_code == 303
+    assert renamed.headers["location"].endswith("/edit")
+    assert client.get(f"/api/people/{person['id']}").json()["aliases"] == ["myself"]
+
+    conflict = client.post(
+        f"{person_url}/aliases/{alias_id}/edit",
+        data={"alias": "Christian"},
+    )
+    assert conflict.status_code == 400
+    assert "must be different from the person's name" in conflict.text
+
+    removed = client.post(
+        f"{person_url}/aliases/{alias_id}/delete",
+        follow_redirects=False,
+    )
+    assert removed.status_code == 303
+    assert client.get(f"/api/people/{person['id']}").json()["aliases"] == []
+
+    added = client.post(
+        f"{person_url}/aliases",
+        data={"alias": "me", "return_to": "edit"},
+        follow_redirects=False,
+    )
+    assert added.status_code == 303
+    assert added.headers["location"].endswith("/edit")
+    assert client.get(f"/api/people/{person['id']}").json()["aliases"] == ["me"]
 
 
 def test_size_can_be_edited_and_deleted_from_web(client, create_person):
