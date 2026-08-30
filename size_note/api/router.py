@@ -11,6 +11,7 @@ from size_note.schemas import (
     PersonRead,
     PersonResolveRequest,
     PersonResolveResponse,
+    PersonUpdate,
     ReviewRead,
     SizeCreate,
     SizeRead,
@@ -22,6 +23,7 @@ from size_note.services.people import (
     get_person,
     list_people,
     resolve_person,
+    update_person,
 )
 from size_note.services.sizes import list_reviews, list_sizes, save_size, verify_size
 
@@ -54,6 +56,13 @@ def list_people_endpoint(session: SessionDependency) -> list[PersonRead]:
 @router.get("/people/{person_id}", response_model=PersonRead)
 def get_person_endpoint(person_id: str, session: SessionDependency) -> PersonRead:
     return person_read(get_person(session, person_id))
+
+
+@router.patch("/people/{person_id}", response_model=PersonRead)
+def update_person_endpoint(
+    person_id: str, payload: PersonUpdate, session: SessionDependency
+) -> PersonRead:
+    return person_read(update_person(session, person_id, payload))
 
 
 @router.post("/people/{person_id}/aliases", response_model=PersonRead)
