@@ -162,6 +162,49 @@ def add_alias(session: Session, person_id: str, raw_alias: str) -> Person:
     return get_person(session, person_id)
 
 
+def update_alias(
+    session: Session, person_id: str, alias_id: str, raw_alias: str
+) -> Person:
+    person = get_person(session, person_id)
+    entry = _get_alias(session, person_id, alias_id)
+    alias = clean_text(raw_alias)
+    alias_key = normalize(alias)
+
+    if alias_key == person.normalized_name:
+        raise ConflictError(
+            "An alias must be different from the person's name.",
+            code="alias_matches_person_name",
+        )
+
+    existing = session.scalar(
+        select(PersonAlias).where(PersonAlias.normalized_alias == alias_key)
+    )
+    if existing is not None and existing.id != alias_id:
+        raise ConflictError(
+            "That alias is already in use.", code="person_identifier_conflict"
+        )
+
+    _ensure_identifier_available(session, alias_key, person_id=person_id)
+    entry.alias = alias
+    entry.normalized_alias = alias_key
+    try:
+        session.commit()
+    except IntegrityError as exc:
+        session.rollback()
+        raise ConflictError(
+            "That alias is already in use.", code="person_identifier_conflict"
+        ) from exc
+    return get_person(session, person_id)
+
+
+def delete_alias(session: Session, person_id: str, alias_id: str) -> Person:
+    get_person(session, person_id)
+    entry = _get_alias(session, person_id, alias_id)
+    session.delete(entry)
+    session.commit()
+    return get_person(session, person_id)
+
+
 def resolve_person(session: Session, raw_query: str) -> Resolution:
     query = clean_text(raw_query)
     query_key = normalize(query)
@@ -227,6 +270,17 @@ def _similarity(query: str, candidate: str) -> float:
     if len(shorter) >= 3 and longer.startswith(shorter):
         score = max(score, 0.82)
     return score
+
+
+def _get_alias(session: Session, person_id: str, alias_id: str) -> PersonAlias:
+    alias = session.scalar(
+        select(PersonAlias).where(
+            PersonAlias.id == alias_id, PersonAlias.person_id == person_id
+        )
+    )
+    if alias is None:
+        raise NotFoundError("Alias was not found.", code="alias_not_found")
+    return alias
 
 
 def _ensure_identifier_available(

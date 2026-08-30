@@ -5,7 +5,7 @@
   <section class="page-heading">
     <p class="eyebrow">Edit person</p>
     <h1>Update {{ person.name }}</h1>
-    <p>Change the display name, birth information, growth-stage fallback, or person-level notes.</p>
+    <p>Change the display name, aliases, birth information, growth-stage fallback, or person-level notes.</p>
   </section>
 
   {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
@@ -35,6 +35,43 @@
 
     <button class="button full-width" type="submit">Save changes</button>
   </form>
+
+  <section class="alias-card" id="aliases">
+    <div class="alias-card-heading">
+      <div>
+        <strong>Aliases</strong>
+        <p>Alternative names or phrases that refer to {{ person.name }}.</p>
+      </div>
+      <span>{{ person.aliases|length }}</span>
+    </div>
+
+    {% if alias_error %}<div class="form-error alias-error" role="alert">{{ alias_error }}</div>{% endif %}
+
+    {% if person.aliases %}
+      <div class="alias-list">
+        {% for entry in person.aliases %}
+          <div class="alias-row">
+            <form class="alias-edit-form" action="{{ url_for('update_alias_web', person_id=person.id, alias_id=entry.id) }}" method="post">
+              <input name="alias" aria-label="Edit alias {{ entry.alias }}" value="{{ entry.alias }}" required>
+              <button type="submit">Save</button>
+            </form>
+            <form action="{{ url_for('delete_alias_web', person_id=person.id, alias_id=entry.id) }}" method="post">
+              <button class="alias-remove" type="submit" aria-label="Remove alias {{ entry.alias }}">Remove</button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty-note alias-empty">No aliases yet.</p>
+    {% endif %}
+
+    <form class="inline-form alias-add-form" action="{{ url_for('confirm_alias_web', person_id=person.id) }}" method="post">
+      <input type="hidden" name="return_to" value="edit">
+      <input name="alias" aria-label="New alias" placeholder="e.g. Chris, me, my son" required>
+      <button type="submit">Add alias</button>
+    </form>
+    <p class="field-help">Aliases can be nicknames, relationship phrases, or words like “me” and “myself”.</p>
+  </section>
 
   <div class="danger-zone">
     <div>
