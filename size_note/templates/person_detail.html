@@ -44,7 +44,7 @@
               <p class="item-name">{{ record.item }}</p>
               <p class="size-value">{{ record.size_value }}{% if record.size_system %} <span>{{ record.size_system }}</span>{% endif %}</p>
               {% if record.equivalents %}
-                <p class="size-equivalents">
+                <p class="metadata size-equivalents">
                   {% for equivalent in record.equivalents %}
                     <span>{{ equivalent['size'] }}{% if equivalent.get('system') %} {{ equivalent['system'] }}{% endif %}</span>{% if not loop.last %} · {% endif %}
                   {% endfor %}
