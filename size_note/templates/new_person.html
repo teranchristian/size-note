@@ -28,9 +28,7 @@
       <p class="field-help">If birth information is provided, Size Note can determine child/adult automatically. Otherwise choose one.</p>
     </fieldset>
 
-    <label for="birth">Birth <span>optional</span></label>
-    <input id="birth" name="birth" value="{{ values.get('birth', '') }}" inputmode="numeric" placeholder="2024, 2024-05, or 2024-05-12">
-    <p class="field-help">Use only what you know. Size Note never invents an unknown month or day.</p>
+    {% include "_birth_fields.html" %}
 
     <label for="aliases">Aliases <span>optional</span></label>
     <input id="aliases" name="aliases" value="{{ values.get('aliases', '') }}" placeholder="Alex, Lex">

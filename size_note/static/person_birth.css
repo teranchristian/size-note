@@ -1,0 +1,61 @@
+.birth-fields {
+  border-top: 1px solid var(--line);
+  margin-top: 18px;
+  padding-top: 18px;
+}
+
+.birth-fields legend {
+  margin-bottom: 12px;
+}
+
+.birth-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1.2fr 1fr 0.8fr;
+}
+
+.birth-grid > div {
+  min-width: 0;
+}
+
+.birth-grid label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.birth-grid select {
+  appearance: none;
+  background: #fff;
+  border: 1px solid #c9d5d0;
+  border-radius: 7px;
+  color: var(--ink);
+  font: inherit;
+  min-height: 48px;
+  padding: 11px 34px 11px 13px;
+  width: 100%;
+}
+
+.birth-grid select:focus {
+  border-color: var(--green-2);
+  box-shadow: 0 0 0 3px rgba(39, 107, 91, 0.13);
+  outline: none;
+}
+
+.birth-grid select:disabled,
+.birth-grid input:disabled {
+  background: #f3f5f4;
+  color: #909b97;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .birth-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .birth-grid > div:first-child {
+    grid-column: 1 / -1;
+  }
+}
