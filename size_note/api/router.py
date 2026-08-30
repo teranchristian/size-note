@@ -21,10 +21,12 @@ from size_note.schemas import (
 from size_note.services.people import (
     add_alias,
     create_person,
+    delete_alias,
     delete_person,
     get_person,
     list_people,
     resolve_person,
+    update_alias,
     update_person,
 )
 from size_note.services.sizes import (
@@ -85,6 +87,42 @@ def add_alias_endpoint(
     person_id: str, payload: AliasCreate, session: SessionDependency
 ) -> PersonRead:
     return person_read(add_alias(session, person_id, payload.alias))
+
+
+@router.get("/people/{person_id}/aliases", include_in_schema=False)
+def list_aliases_endpoint(
+    person_id: str, session: SessionDependency
+) -> list[dict[str, str]]:
+    person = get_person(session, person_id)
+    return [
+        {"id": entry.id, "alias": entry.alias}
+        for entry in sorted(person.aliases, key=lambda item: item.alias.casefold())
+    ]
+
+
+@router.patch(
+    "/people/{person_id}/aliases/{alias_id}",
+    response_model=PersonRead,
+    include_in_schema=False,
+)
+def update_alias_endpoint(
+    person_id: str,
+    alias_id: str,
+    payload: AliasCreate,
+    session: SessionDependency,
+) -> PersonRead:
+    return person_read(update_alias(session, person_id, alias_id, payload.alias))
+
+
+@router.delete(
+    "/people/{person_id}/aliases/{alias_id}",
+    response_model=PersonRead,
+    include_in_schema=False,
+)
+def delete_alias_endpoint(
+    person_id: str, alias_id: str, session: SessionDependency
+) -> PersonRead:
+    return person_read(delete_alias(session, person_id, alias_id))
 
 
 @router.post("/sizes", response_model=SizeSaveResponse)
