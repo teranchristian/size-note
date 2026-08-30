@@ -85,6 +85,46 @@ def person_add(
     _emit(payload, json_output=json_output, human=f"Created {payload['name']}.")
 
 
+@app.command("person-update")
+def person_update(
+    person: Annotated[str, typer.Option("--person", help="Name or alias")],
+    notes: Annotated[str | None, typer.Option("--notes")] = None,
+    growth_stage: Annotated[
+        str | None, typer.Option("--growth-stage", help="adult or child")
+    ] = None,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+    url: Annotated[str | None, typer.Option("--url", envvar="SIZE_NOTE_URL")] = None,
+) -> None:
+    """Update an exactly resolved person's notes or growth stage."""
+    if notes is None and growth_stage is None:
+        raise typer.BadParameter("provide --notes and/or --growth-stage")
+    if growth_stage is not None and growth_stage not in {"adult", "child"}:
+        raise typer.BadParameter("growth stage must be adult or child")
+
+    base_url = _base_url(url)
+    resolution = _resolve(base_url, person)
+    if resolution["status"] not in {"exact_match", "alias_match"}:
+        _emit(
+            resolution,
+            json_output=json_output,
+            human="The person could not be resolved safely. Nothing was updated.",
+        )
+        return
+
+    candidate = resolution["candidates"][0]
+    changes: dict[str, Any] = {}
+    if notes is not None:
+        changes["notes"] = notes
+    if growth_stage is not None:
+        changes["growth_stage"] = growth_stage
+    payload = _request(
+        "PATCH",
+        f"{base_url}/api/people/{candidate['id']}",
+        json=changes,
+    )
+    _emit(payload, json_output=json_output, human=f"Updated {payload['name']}.")
+
+
 @app.command()
 def remember(
     person: Annotated[str, typer.Option("--person", help="Name or alias")],
