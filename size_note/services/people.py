@@ -106,6 +106,14 @@ def update_person(session: Session, person_id: str, data: PersonUpdate) -> Perso
     return get_person(session, person_id)
 
 
+def delete_person(session: Session, person_id: str) -> str:
+    person = get_person(session, person_id)
+    name = person.name
+    session.delete(person)
+    session.commit()
+    return name
+
+
 def add_alias(session: Session, person_id: str, raw_alias: str) -> Person:
     person = get_person(session, person_id)
     alias = clean_text(raw_alias)
