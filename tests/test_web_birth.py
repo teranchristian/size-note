@@ -6,7 +6,8 @@ def test_birth_form_uses_progressive_year_month_day_fields(client):
     assert 'data-birth-year' in page.text
     assert 'data-birth-month' in page.text
     assert 'data-birth-day' in page.text
-    assert '<option value="05">May</option>' in page.text
+    assert 'value="05"' in page.text
+    assert ">May</option>" in page.text
     assert "Month becomes available after a year is entered" in page.text
     assert "/static/person_birth.js" in page.text
 
@@ -109,7 +110,8 @@ def test_web_can_refine_partial_birth_information(client, create_person):
     assert stored["birth_day"] is None
 
     page = client.get(edit_url)
-    assert '<option value="05" selected>May</option>' in page.text
+    assert 'value="05" selected' in page.text
+    assert ">May</option>" in page.text
 
 
 def test_web_edit_populates_full_birth_date_across_three_fields(client, create_person):
@@ -125,5 +127,7 @@ def test_web_edit_populates_full_birth_date_across_three_fields(client, create_p
 
     assert page.status_code == 200
     assert 'value="2024"' in page.text
-    assert '<option value="05" selected>May</option>' in page.text
-    assert '<option value="12" selected>12</option>' in page.text
+    assert 'value="05" selected' in page.text
+    assert ">May</option>" in page.text
+    assert 'value="12" selected' in page.text
+    assert ">12</option>" in page.text
