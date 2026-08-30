@@ -5,7 +5,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from size_note.birth import review_interval_days, youngest_possible_age
+from size_note.birth import approximate_age_years, review_interval_days
 from size_note.exceptions import ConflictError, NotFoundError
 from size_note.models import Person, SizeRecord, utc_now
 from size_note.normalization import clean_text, normalize, optional_text
@@ -273,7 +273,7 @@ def list_reviews(session: Session, *, now: datetime | None = None) -> list[Revie
         age_years = None
         age_approximate = False
         if person.birth_year is not None:
-            age_years = youngest_possible_age(
+            age_years = approximate_age_years(
                 person.birth_year,
                 person.birth_month,
                 person.birth_day,
