@@ -11,7 +11,20 @@
     </div>
   </section>
 
-  {% if person.notes %}<div class="notes-card"><strong>Notes</strong><p>{{ person.notes }}</p></div>{% endif %}
+  <section class="notes-card">
+    <div class="notes-card-heading">
+      <strong>Notes</strong>
+      <span>{{ 'Person context' if person.notes else 'No notes yet' }}</span>
+    </div>
+    {% if person.notes %}<p>{{ person.notes }}</p>{% else %}<p class="empty-note">Add relationship, birth year, preferences, or other person-level context.</p>{% endif %}
+    <details class="notes-editor">
+      <summary>{{ 'Edit note' if person.notes else 'Add note' }}</summary>
+      <form class="notes-form" action="{{ url_for('update_person_notes_web', person_id=person.id) }}" method="post">
+        <textarea name="notes" aria-label="Person notes" placeholder="e.g. My son · Born in 2024">{{ person.notes or '' }}</textarea>
+        <button type="submit">Save note</button>
+      </form>
+    </details>
+  </section>
 
   <div class="section-heading">
     <div><p class="eyebrow">Current sizes</p><h2>What fits now</h2></div>
@@ -35,7 +48,8 @@
             {% endif %}
           </div>
           {% if record.brand or record.model %}<p class="metadata">{{ record.brand or '' }}{% if record.brand and record.model %} · {% endif %}{{ record.model or '' }}</p>{% endif %}
-          {% if record.fit_notes %}<p class="fit-note">{{ record.fit_notes }}</p>{% endif %}
+          {% if record.fit_notes %}<p class="fit-note"><strong>Fit</strong> {{ record.fit_notes }}</p>{% endif %}
+          {% if record.notes %}<p class="record-note"><strong>Note</strong> {{ record.notes }}</p>{% endif %}
           <div class="verification-row">
             <p class="verified">Checked {{ record.verified_at.strftime('%d %b %Y') }}</p>
             <form action="{{ url_for('verify_size_web', person_id=person.id, size_id=record.id) }}" method="post">
