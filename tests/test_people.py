@@ -68,3 +68,37 @@ def test_person_notes_can_be_updated_and_cleared(client, create_person):
     cleared = client.patch(f"/api/people/{person['id']}", json={"notes": "   "})
     assert cleared.status_code == 200
     assert cleared.json()["notes"] is None
+
+
+def test_person_name_and_growth_stage_can_be_corrected(client, create_person):
+    person = create_person("Haru T", growth_stage="adult")
+
+    updated = client.patch(
+        f"/api/people/{person['id']}",
+        json={"name": "Haru", "growth_stage": "child"},
+    )
+
+    assert updated.status_code == 200
+    assert updated.json()["name"] == "Haru"
+    assert updated.json()["growth_stage"] == "child"
+    resolution = client.post("/api/people/resolve", json={"name": "Haru"}).json()
+    assert resolution["status"] == "exact_match"
+    assert resolution["candidates"][0]["id"] == person["id"]
+
+
+def test_deleting_person_removes_aliases_and_size_history(client, create_person):
+    person = create_person("Haru", growth_stage="child", aliases=["H"])
+    saved = client.post(
+        "/api/sizes",
+        json={"person_id": person["id"], "item": "T-shirt", "size": "90"},
+    ).json()["record"]
+
+    deleted = client.delete(f"/api/people/{person['id']}")
+
+    assert deleted.status_code == 200
+    assert deleted.json()["status"] == "deleted"
+    assert client.get(f"/api/people/{person['id']}").status_code == 404
+    assert client.get("/api/people").json() == []
+    assert client.patch(
+        f"/api/people/{person['id']}/sizes/{saved['id']}", json={"size": "95"}
+    ).status_code == 404

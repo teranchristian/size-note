@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Delete {{ record.item }} size · Size Note{% endblock %}
+{% block content %}
+  <a class="back-link" href="{{ url_for('edit_size', person_id=person.id, size_id=record.id) }}">← Edit size</a>
+  <section class="page-heading danger-heading">
+    <p class="eyebrow">Delete size</p>
+    <h1>Delete {{ record.item }} {{ record.size_value }}?</h1>
+    <p>This removes this saved size record for {{ person.name }}.</p>
+  </section>
+
+  <div class="confirm-card">
+    <strong>{{ record.item }} · {{ record.size_value }}{% if record.size_system %} {{ record.size_system }}{% endif %}</strong>
+    {% if record.is_current %}
+      <p>If this record replaced an older version of the same item/system/brand/model, the most recent previous size becomes current again.</p>
+    {% else %}
+      <p>This is a previous size record. Deleting it does not change the current size.</p>
+    {% endif %}
+    <div class="confirm-actions">
+      <a class="button secondary-button" href="{{ url_for('edit_size', person_id=person.id, size_id=record.id) }}">Cancel</a>
+      <form action="{{ url_for('delete_size_web', person_id=person.id, size_id=record.id) }}" method="post">
+        <button class="danger-button" type="submit">Yes, delete size</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

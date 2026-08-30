@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 {% block title %}{{ person.name }} · Size Note{% endblock %}
 {% block content %}
-  <a class="back-link" href="{{ url_for('home') }}">← People</a>
+  <div class="page-toolbar">
+    <a class="back-link" href="{{ url_for('home') }}">← People</a>
+    <a class="text-action" href="{{ url_for('edit_person', person_id=person.id) }}">Edit person</a>
+  </div>
   <section class="profile-heading">
     <span class="avatar large">{{ person.name[0]|upper }}</span>
     <div>
@@ -52,9 +55,12 @@
           {% if record.notes %}<p class="record-note"><strong>Note</strong> {{ record.notes }}</p>{% endif %}
           <div class="verification-row">
             <p class="verified">Checked {{ record.verified_at.strftime('%d %b %Y') }}</p>
-            <form action="{{ url_for('verify_size_web', person_id=person.id, size_id=record.id) }}" method="post">
-              <button type="submit">Still correct</button>
-            </form>
+            <div class="size-actions">
+              <a href="{{ url_for('edit_size', person_id=person.id, size_id=record.id) }}">Edit</a>
+              <form action="{{ url_for('verify_size_web', person_id=person.id, size_id=record.id) }}" method="post">
+                <button type="submit">Still correct</button>
+              </form>
+            </div>
           </div>
         </article>
       {% endfor %}
@@ -79,7 +85,10 @@
       <summary>Previous sizes ({{ history|length }})</summary>
       <div class="history-list">
         {% for record in history %}
-          <div><strong>{{ record.item }} · {{ record.size_value }}</strong><span>{{ record.size_system or 'No system' }} · checked {{ record.verified_at.strftime('%d %b %Y') }}</span></div>
+          <div class="history-row">
+            <div><strong>{{ record.item }} · {{ record.size_value }}</strong><span>{{ record.size_system or 'No system' }} · checked {{ record.verified_at.strftime('%d %b %Y') }}</span></div>
+            <a href="{{ url_for('edit_size', person_id=person.id, size_id=record.id) }}">Edit</a>
+          </div>
         {% endfor %}
       </div>
     </details>

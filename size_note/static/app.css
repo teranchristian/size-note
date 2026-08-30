@@ -52,6 +52,9 @@ h2 { font-size: 1.25rem; letter-spacing: -0.025em; margin-bottom: 0; }
 .eyebrow { color: var(--green-2); font-size: 0.72rem; font-weight: 850; letter-spacing: 0.13em; margin-bottom: 9px; text-transform: uppercase; }
 .page-heading { margin-bottom: 26px; max-width: 660px; }
 .back-link { color: var(--green-2); display: inline-block; font-size: 0.9rem; font-weight: 750; margin-bottom: 28px; }
+.page-toolbar { align-items: center; display: flex; justify-content: space-between; margin-bottom: 28px; }
+.page-toolbar .back-link { margin-bottom: 0; }
+.text-action { color: var(--green-2); font-size: 0.85rem; font-weight: 800; }
 
 .search-card, .form-card, .notes-card, .details-card {
   background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); padding: 22px;
@@ -89,6 +92,7 @@ input:focus, textarea:focus { border-color: var(--green-2); box-shadow: 0 0 0 3p
   background: var(--green); border: 0; border-radius: 7px; color: white; display: inline-flex; font-weight: 800; justify-content: center; padding: 13px 18px;
 }
 .small-button { font-size: 0.85rem; padding: 10px 14px; }
+.secondary-button { background: transparent; border: 1px solid var(--line); color: var(--ink); }
 .full-width { margin-top: 22px; width: 100%; }
 .form-card { display: grid; gap: 8px; max-width: 680px; }
 .form-card input + label, .form-card textarea + label, .form-card .field-help + label, .form-card fieldset + label, .form-card details + label { margin-top: 13px; }
@@ -133,15 +137,32 @@ legend { font-size: 0.85rem; font-weight: 800; margin-bottom: 9px; }
 .fit-note strong, .record-note strong { color: var(--ink); margin-right: 4px; }
 .verified { color: #85918e; font-size: 0.72rem; margin: 15px 0 0; }
 .verification-row { align-items: end; display: flex; justify-content: space-between; }
-.verification-row button { background: transparent; border: 0; color: var(--green-2); font-size: 0.75rem; font-weight: 800; padding: 8px 0 0 8px; }
+.verification-row button { background: transparent; border: 0; color: var(--green-2); font-size: 0.75rem; font-weight: 800; padding: 0; }
+.size-actions { align-items: center; display: flex; gap: 12px; padding-top: 8px; }
+.size-actions a, .history-row > a { color: var(--green-2); font-size: 0.75rem; font-weight: 800; }
 .empty-inline { align-items: center; background: var(--mint); display: flex; justify-content: space-between; padding: 18px; }
 .empty-inline p { margin: 0; }
 .empty-inline a { color: var(--green-2); font-weight: 800; }
 .details-card { box-shadow: none; margin-top: 16px; }
 .top-gap { margin-top: 14px; }
 .history-list { display: grid; gap: 12px; padding-top: 16px; }
-.history-list div { border-top: 1px solid var(--line); display: flex; flex-direction: column; padding-top: 12px; }
+.history-list > div { border-top: 1px solid var(--line); padding-top: 12px; }
 .history-list span { color: var(--muted); font-size: 0.78rem; margin-top: 3px; }
+.history-row { align-items: center; display: flex; justify-content: space-between; }
+.history-row > div { display: flex; flex-direction: column; }
+
+.danger-zone, .confirm-card {
+  background: var(--danger-bg); border: 1px solid #efb8b3; margin-top: 28px; max-width: 680px; padding: 18px;
+}
+.danger-zone { align-items: center; display: flex; gap: 18px; justify-content: space-between; }
+.danger-zone p, .confirm-card p { color: #74443f; margin: 6px 0 0; }
+.compact-danger { margin-top: 18px; }
+.danger-link { color: var(--danger); flex: 0 0 auto; font-size: 0.85rem; font-weight: 850; }
+.danger-heading .eyebrow { color: var(--danger); }
+.confirm-card { background: var(--card); }
+.confirm-actions { align-items: center; display: flex; gap: 10px; margin-top: 20px; }
+.confirm-actions form { margin: 0; }
+.danger-button { background: var(--danger); border: 0; border-radius: 7px; color: white; cursor: pointer; font-weight: 800; padding: 13px 18px; }
 
 .candidate-list, .review-list { display: grid; gap: 12px; }
 .candidate-card, .review-card { align-items: center; background: var(--card); border: 1px solid var(--line); display: flex; gap: 14px; padding: 16px; }
@@ -166,4 +187,7 @@ legend { font-size: 0.85rem; font-weight: 800; margin-bottom: 9px; }
   .candidate-card form { flex-basis: 100%; margin-left: 62px; }
   .candidate-card button { width: 100%; }
   .profile-heading h1 { font-size: 2.1rem; }
+  .danger-zone { align-items: flex-start; flex-direction: column; }
+  .confirm-actions { align-items: stretch; flex-direction: column; }
+  .confirm-actions .button, .confirm-actions form, .confirm-actions button { width: 100%; }
 }

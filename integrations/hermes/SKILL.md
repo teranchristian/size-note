@@ -1,6 +1,6 @@
 ---
 name: size-note
-description: Save, update, or retrieve clothing, footwear, ring, hat, and other wearable sizes for people using the local Size Note CLI. Use when the user asks Hermes to remember what fits someone or check a saved size.
+description: Save, update, retrieve, correct, or delete clothing, footwear, ring, hat, and other wearable sizes for people using the local Size Note CLI. Use when the user asks Hermes to remember what fits someone, check a saved size, correct a mistake, or remove Size Note data.
 version: 0.1.0
 license: MIT
 platforms: [linux, macos]
@@ -72,23 +72,56 @@ When the user supplies person-level context during creation, put it in `--notes`
 size-note person-add "Haru" --growth-stage child --notes "My son; born in 2024" --json
 ```
 
-## Update person notes
+## Update a person
 
-For an existing person, use `person-update` for person-level notes instead of attaching them to a size record:
+For an existing person, use `person-update` for person-level corrections. It can change the display name, notes, or growth stage:
 
 ```bash
 size-note person-update --person "Haru" --notes "My son; born in 2024" --json
+size-note person-update --person "Haru" --name "Haru Teran" --growth-stage child --json
 ```
 
 `person-update` uses the same safe name resolution rules as retrieval. If the result is `confirmation_required`, `multiple_matches`, or `not_found`, do not guess or update anything; ask the user to resolve the person first.
 
-You may also update an explicitly stated growth stage:
+Do not overwrite useful existing person notes with a shorter fragment when the user is adding context. Read the current person data first when necessary and preserve existing useful context in the replacement note.
+
+## Correct an existing size record
+
+When the user is correcting a mistake in a specific saved record, do not call `remember`, because that can intentionally create history. First retrieve the person's sizes with IDs:
 
 ```bash
-size-note person-update --person "Haru" --growth-stage child --json
+size-note get --person "Haru" --json
 ```
 
-Do not overwrite useful existing person notes with a shorter fragment when the user is adding context. Read the current person data first when necessary and preserve existing useful context in the replacement note.
+Identify the exact intended record from the returned `sizes` array. If more than one record could match the user's wording, ask which one they mean. Then update that stable record ID:
+
+```bash
+size-note size-update --person "Haru" --size-id "SIZE_ID" --size "95" --system "Japan" --json
+```
+
+You may also correct `--item`, `--brand`, `--model`, `--fit-notes`, `--notes`, or `--measured-on`. Use `--clear-measured-on` only when the user explicitly wants that date removed.
+
+Use `remember` for a genuine new/current size observation; use `size-update` for correcting an existing saved record.
+
+## Delete data
+
+Deletion is destructive. **Always obtain explicit user confirmation immediately before deleting.** Never infer confirmation from an earlier general request to clean up data.
+
+To delete one size, first run `get --json`, identify the exact record ID, and ask for confirmation. After the user confirms:
+
+```bash
+size-note size-delete --person "Haru" --size-id "SIZE_ID" --confirm --json
+```
+
+If the deleted record was current and had an older version of the same item/system/brand/model, Size Note restores the most recent previous version as current.
+
+To delete a person, explain that all aliases and all size history for that person will also be deleted, then ask for confirmation. Only after explicit confirmation run:
+
+```bash
+size-note person-delete --person "NAME" --confirm --json
+```
+
+Never pass `--confirm` before the user has explicitly confirmed the specific deletion.
 
 ## Retrieve sizes
 

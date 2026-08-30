@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from size_note.exceptions import ConflictError, NotFoundError
 from size_note.models import Person, SizeRecord, utc_now
 from size_note.normalization import clean_text, normalize, optional_text
-from size_note.schemas import SizeCreate
+from size_note.schemas import SizeCreate, SizeUpdate
 from size_note.services.people import get_person
 
 
@@ -26,6 +26,17 @@ class Review:
 
 
 SHOE_KEYS = {"shoe", "shoes", "footwear", "sneaker", "sneakers", "boot", "boots"}
+
+
+def get_size(
+    session: Session, size_id: str, *, expected_person_id: str | None = None
+) -> SizeRecord:
+    record = session.get(SizeRecord, size_id)
+    if record is None or (
+        expected_person_id is not None and record.person_id != expected_person_id
+    ):
+        raise NotFoundError("Size record was not found.", code="size_not_found")
+    return record
 
 
 def save_size(session: Session, data: SizeCreate) -> SaveResult:
@@ -94,6 +105,90 @@ def save_size(session: Session, data: SizeCreate) -> SaveResult:
     return SaveResult(action=action, record=record)
 
 
+def update_size(
+    session: Session,
+    size_id: str,
+    data: SizeUpdate,
+    *,
+    expected_person_id: str | None = None,
+) -> SizeRecord:
+    record = get_size(session, size_id, expected_person_id=expected_person_id)
+
+    if "item" in data.model_fields_set and data.item is not None:
+        record.item = clean_text(data.item)
+    if "size" in data.model_fields_set and data.size is not None:
+        record.size_value = clean_text(data.size)
+    if "system" in data.model_fields_set:
+        record.size_system = optional_text(data.system)
+    if "brand" in data.model_fields_set:
+        record.brand = optional_text(data.brand)
+    if "model" in data.model_fields_set:
+        record.model = optional_text(data.model)
+    if "fit_notes" in data.model_fields_set:
+        record.fit_notes = optional_text(data.fit_notes)
+    if "notes" in data.model_fields_set:
+        record.notes = optional_text(data.notes)
+    if "measured_on" in data.model_fields_set:
+        record.measured_on = data.measured_on
+
+    record.item_key = normalize(record.item)
+    record.size_key = normalize(record.size_value)
+    record.system_key = normalize(record.size_system)
+    record.brand_key = normalize(record.brand)
+    record.model_key = normalize(record.model)
+
+    if record.is_current:
+        conflict = session.scalar(
+            select(SizeRecord).where(
+                SizeRecord.id != record.id,
+                SizeRecord.person_id == record.person_id,
+                SizeRecord.item_key == record.item_key,
+                SizeRecord.system_key == record.system_key,
+                SizeRecord.brand_key == record.brand_key,
+                SizeRecord.model_key == record.model_key,
+                SizeRecord.is_current.is_(True),
+            )
+        )
+        if conflict is not None:
+            session.rollback()
+            raise ConflictError(
+                "Another current size already uses that item, system, brand, and model.",
+                code="size_identity_conflict",
+            )
+
+    session.commit()
+    session.refresh(record)
+    return record
+
+
+def delete_size(
+    session: Session, size_id: str, *, expected_person_id: str | None = None
+) -> SizeRecord:
+    record = get_size(session, size_id, expected_person_id=expected_person_id)
+
+    if record.is_current:
+        previous = session.scalar(
+            select(SizeRecord)
+            .where(
+                SizeRecord.id != record.id,
+                SizeRecord.person_id == record.person_id,
+                SizeRecord.item_key == record.item_key,
+                SizeRecord.system_key == record.system_key,
+                SizeRecord.brand_key == record.brand_key,
+                SizeRecord.model_key == record.model_key,
+                SizeRecord.is_current.is_(False),
+            )
+            .order_by(SizeRecord.verified_at.desc())
+        )
+        if previous is not None:
+            previous.is_current = True
+            previous.superseded_at = None
+
+    session.delete(record)
+    session.commit()
+    return record
+
+
 def list_sizes(
     session: Session, person_id: str, *, include_history: bool = True
 ) -> list[SizeRecord]:
@@ -108,11 +203,7 @@ def list_sizes(
 def verify_size(
     session: Session, size_id: str, *, expected_person_id: str | None = None
 ) -> SizeRecord:
-    record = session.get(SizeRecord, size_id)
-    if record is None:
-        raise NotFoundError("Size record was not found.", code="size_not_found")
-    if expected_person_id is not None and record.person_id != expected_person_id:
-        raise NotFoundError("Size record was not found.", code="size_not_found")
+    record = get_size(session, size_id, expected_person_id=expected_person_id)
     if not record.is_current:
         raise ConflictError(
             "A previous size cannot become current through verification.",

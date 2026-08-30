@@ -56,6 +56,20 @@ def _emit(payload: Any, *, json_output: bool, human: str | None = None) -> None:
         typer.echo(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
+def _resolved_person_id(
+    base_url: str, person: str, *, json_output: bool, operation: str
+) -> str | None:
+    resolution = _resolve(base_url, person)
+    if resolution["status"] in {"exact_match", "alias_match"}:
+        return resolution["candidates"][0]["id"]
+    _emit(
+        resolution,
+        json_output=json_output,
+        human=f"The person could not be resolved safely. Nothing was {operation}.",
+    )
+    return None
+
+
 @app.command("person-add")
 def person_add(
     name: Annotated[str, typer.Argument(help="Canonical display name")],
@@ -88,6 +102,7 @@ def person_add(
 @app.command("person-update")
 def person_update(
     person: Annotated[str, typer.Option("--person", help="Name or alias")],
+    name: Annotated[str | None, typer.Option("--name")] = None,
     notes: Annotated[str | None, typer.Option("--notes")] = None,
     growth_stage: Annotated[
         str | None, typer.Option("--growth-stage", help="adult or child")
@@ -95,34 +110,64 @@ def person_update(
     json_output: Annotated[bool, typer.Option("--json")] = False,
     url: Annotated[str | None, typer.Option("--url", envvar="SIZE_NOTE_URL")] = None,
 ) -> None:
-    """Update an exactly resolved person's notes or growth stage."""
-    if notes is None and growth_stage is None:
-        raise typer.BadParameter("provide --notes and/or --growth-stage")
+    """Update an exactly resolved person's name, notes, or growth stage."""
+    if name is None and notes is None and growth_stage is None:
+        raise typer.BadParameter("provide --name, --notes, and/or --growth-stage")
     if growth_stage is not None and growth_stage not in {"adult", "child"}:
         raise typer.BadParameter("growth stage must be adult or child")
 
     base_url = _base_url(url)
-    resolution = _resolve(base_url, person)
-    if resolution["status"] not in {"exact_match", "alias_match"}:
-        _emit(
-            resolution,
-            json_output=json_output,
-            human="The person could not be resolved safely. Nothing was updated.",
-        )
+    person_id = _resolved_person_id(
+        base_url, person, json_output=json_output, operation="updated"
+    )
+    if person_id is None:
         return
 
-    candidate = resolution["candidates"][0]
     changes: dict[str, Any] = {}
+    if name is not None:
+        changes["name"] = name
     if notes is not None:
         changes["notes"] = notes
     if growth_stage is not None:
         changes["growth_stage"] = growth_stage
     payload = _request(
         "PATCH",
-        f"{base_url}/api/people/{candidate['id']}",
+        f"{base_url}/api/people/{person_id}",
         json=changes,
     )
     _emit(payload, json_output=json_output, human=f"Updated {payload['name']}.")
+
+
+@app.command("person-delete")
+def person_delete(
+    person: Annotated[str, typer.Option("--person", help="Name or alias")],
+    confirm: Annotated[bool, typer.Option("--confirm")] = False,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+    url: Annotated[str | None, typer.Option("--url", envvar="SIZE_NOTE_URL")] = None,
+) -> None:
+    """Delete a person and all of their size history after explicit confirmation."""
+    if not confirm:
+        _emit(
+            {
+                "status": "confirmation_required",
+                "detail": (
+                    "Deleting a person also deletes all of their sizes. "
+                    "Pass --confirm only after explicit user confirmation."
+                ),
+            },
+            json_output=json_output,
+            human="Confirmation required. Nothing was deleted.",
+        )
+        return
+
+    base_url = _base_url(url)
+    person_id = _resolved_person_id(
+        base_url, person, json_output=json_output, operation="deleted"
+    )
+    if person_id is None:
+        return
+    payload = _request("DELETE", f"{base_url}/api/people/{person_id}")
+    _emit(payload, json_output=json_output, human=f"Deleted {payload['name']}.")
 
 
 @app.command()
@@ -198,6 +243,104 @@ def remember(
         result,
         json_output=json_output,
         human=f"{result['action'].title()}: {record['item']} {record['size']}{system_text}.",
+    )
+
+
+@app.command("size-update")
+def size_update(
+    person: Annotated[str, typer.Option("--person", help="Name or alias")],
+    size_id: Annotated[str, typer.Option("--size-id", help="Stable size record ID")],
+    item: Annotated[str | None, typer.Option("--item")] = None,
+    size: Annotated[str | None, typer.Option("--size")] = None,
+    system: Annotated[str | None, typer.Option("--system")] = None,
+    brand: Annotated[str | None, typer.Option("--brand")] = None,
+    model: Annotated[str | None, typer.Option("--model")] = None,
+    fit_notes: Annotated[str | None, typer.Option("--fit-notes")] = None,
+    notes: Annotated[str | None, typer.Option("--notes")] = None,
+    measured_on: Annotated[str | None, typer.Option("--measured-on")] = None,
+    clear_measured_on: Annotated[bool, typer.Option("--clear-measured-on")] = False,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+    url: Annotated[str | None, typer.Option("--url", envvar="SIZE_NOTE_URL")] = None,
+) -> None:
+    """Correct one existing size record in place."""
+    supplied = any(
+        value is not None
+        for value in (item, size, system, brand, model, fit_notes, notes, measured_on)
+    ) or clear_measured_on
+    if not supplied:
+        raise typer.BadParameter("provide at least one field to update")
+    if measured_on is not None and clear_measured_on:
+        raise typer.BadParameter("use either --measured-on or --clear-measured-on")
+
+    base_url = _base_url(url)
+    person_id = _resolved_person_id(
+        base_url, person, json_output=json_output, operation="updated"
+    )
+    if person_id is None:
+        return
+
+    changes: dict[str, Any] = {}
+    for key, value in {
+        "item": item,
+        "size": size,
+        "system": system,
+        "brand": brand,
+        "model": model,
+        "fit_notes": fit_notes,
+        "notes": notes,
+    }.items():
+        if value is not None:
+            changes[key] = value
+    if measured_on is not None:
+        changes["measured_on"] = measured_on
+    elif clear_measured_on:
+        changes["measured_on"] = None
+
+    payload = _request(
+        "PATCH",
+        f"{base_url}/api/people/{person_id}/sizes/{size_id}",
+        json=changes,
+    )
+    _emit(
+        payload,
+        json_output=json_output,
+        human=f"Updated {payload['item']} {payload['size']}.",
+    )
+
+
+@app.command("size-delete")
+def size_delete(
+    person: Annotated[str, typer.Option("--person", help="Name or alias")],
+    size_id: Annotated[str, typer.Option("--size-id", help="Stable size record ID")],
+    confirm: Annotated[bool, typer.Option("--confirm")] = False,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+    url: Annotated[str | None, typer.Option("--url", envvar="SIZE_NOTE_URL")] = None,
+) -> None:
+    """Delete one size record after explicit confirmation."""
+    if not confirm:
+        _emit(
+            {
+                "status": "confirmation_required",
+                "detail": "Pass --confirm only after explicit user confirmation.",
+            },
+            json_output=json_output,
+            human="Confirmation required. Nothing was deleted.",
+        )
+        return
+
+    base_url = _base_url(url)
+    person_id = _resolved_person_id(
+        base_url, person, json_output=json_output, operation="deleted"
+    )
+    if person_id is None:
+        return
+    payload = _request(
+        "DELETE", f"{base_url}/api/people/{person_id}/sizes/{size_id}"
+    )
+    _emit(
+        payload,
+        json_output=json_output,
+        human=f"Deleted {payload['item']} {payload['size']}.",
     )
 
 
