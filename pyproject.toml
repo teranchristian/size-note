@@ -30,7 +30,7 @@ dev = [
 ]
 
 [project.scripts]
-size-note = "size_note.cli:app"
+size-note = "size_note.cli_ext:app"
 
 [tool.setuptools.packages.find]
 include = ["size_note*"]
