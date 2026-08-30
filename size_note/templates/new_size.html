@@ -8,7 +8,7 @@
     {% if mode == 'edit' %}
       <p>Edits correct this saved record in place and do not create a new history entry.</p>
     {% else %}
-      <p>Brand and fit details are optional. Re-entering the same size marks it as checked today.</p>
+      <p>Save one fit record per item. If a label gives the same fit in several systems, add those as equivalent sizes instead of separate records.</p>
     {% endif %}
   </section>
 
@@ -19,19 +19,23 @@
         <label for="item">Item</label>
         <input id="item" name="item" list="items" value="{{ values.get('item', '') }}" placeholder="Shoes" required autofocus>
         <datalist id="items">
-          <option value="Shoes"><option value="T-shirt"><option value="Trousers">
+          <option value="Shoes"><option value="T-shirt"><option value="Pants"><option value="Trousers">
           <option value="Jacket"><option value="Dress"><option value="Ring">
           <option value="Hat"><option value="Gloves"><option value="Belt">
         </datalist>
       </div>
       <div>
-        <label for="size">Size</label>
-        <input id="size" name="size" value="{{ values.get('size', '') }}" placeholder="15 cm or M" required>
+        <label for="size">Primary size</label>
+        <input id="size" name="size" value="{{ values.get('size', '') }}" placeholder="25.25 or M" required>
       </div>
     </div>
 
-    <label for="system">Sizing system <span>optional</span></label>
-    <input id="system" name="system" value="{{ values.get('system', '') }}" placeholder="JP, AU, EU, Universal">
+    <label for="system">Primary sizing system <span>optional</span></label>
+    <input id="system" name="system" value="{{ values.get('system', '') }}" placeholder="CM, JP, AU, EU, Universal">
+
+    <label for="equivalents">Equivalent sizes <span>optional</span></label>
+    <textarea id="equivalents" name="equivalents" rows="3" placeholder="EU: 40&#10;US: 7">{{ values.get('equivalents', '') }}</textarea>
+    <p class="field-help">Use one confirmed equivalent per line as SYSTEM: SIZE. This works for shoes, T-shirts, pants, and other wearables.</p>
 
     <details class="optional-fields" {% if mode == 'edit' %}open{% endif %}>
       <summary>Brand and fit details <span>optional</span></summary>
