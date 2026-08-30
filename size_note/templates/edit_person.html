@@ -28,9 +28,7 @@
       <p class="field-help">Birth information takes precedence for review behavior. This choice is the fallback if birth information is missing.</p>
     </fieldset>
 
-    <label for="birth">Birth <span>optional</span></label>
-    <input id="birth" name="birth" value="{{ values.get('birth', '') }}" inputmode="numeric" placeholder="2024, 2024-05, or 2024-05-12">
-    <p class="field-help">Use YYYY, YYYY-MM, or YYYY-MM-DD. Leave blank to remove saved birth information.</p>
+    {% include "_birth_fields.html" %}
 
     <label for="notes">Person notes <span>optional</span></label>
     <textarea id="notes" name="notes" rows="4" placeholder="Relationship, preferences, or other context...">{{ values.get('notes', '') }}</textarea>
