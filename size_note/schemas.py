@@ -100,6 +100,22 @@ class SizeCreate(CleanModel):
         return optional_text(value)
 
 
+class SizeUpdate(CleanModel):
+    item: str | None = Field(default=None, min_length=1, max_length=120)
+    size: str | None = Field(default=None, min_length=1, max_length=120)
+    system: str | None = Field(default=None, max_length=120)
+    brand: str | None = Field(default=None, max_length=160)
+    model: str | None = Field(default=None, max_length=160)
+    fit_notes: str | None = None
+    notes: str | None = None
+    measured_on: date | None = None
+
+    @field_validator("system", "brand", "model", "fit_notes", "notes", mode="after")
+    @classmethod
+    def blanks_to_none(cls, value: str | None) -> str | None:
+        return optional_text(value)
+
+
 class SizeRead(BaseModel):
     id: str
     person_id: str
