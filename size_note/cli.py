@@ -56,6 +56,20 @@ def _emit(payload: Any, *, json_output: bool, human: str | None = None) -> None:
         typer.echo(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
+def _parse_equivalent_options(values: list[str] | None) -> list[dict[str, str | None]]:
+    result: list[dict[str, str | None]] = []
+    for raw in values or []:
+        if ":" not in raw:
+            raise typer.BadParameter(
+                "equivalent sizes must use SYSTEM:SIZE, for example --equivalent EU:40"
+            )
+        system, size = (part.strip() for part in raw.split(":", 1))
+        if not size:
+            raise typer.BadParameter("equivalent sizes must include a size value")
+        result.append({"system": system or None, "size": size})
+    return result
+
+
 def _resolved_person_id(
     base_url: str, person: str, *, json_output: bool, operation: str
 ) -> str | None:
@@ -176,6 +190,13 @@ def remember(
     item: Annotated[str, typer.Option("--item")],
     size: Annotated[str, typer.Option("--size")],
     system: Annotated[str | None, typer.Option("--system")] = None,
+    equivalent: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--equivalent",
+            help="Repeat confirmed alternate systems as SYSTEM:SIZE, e.g. EU:40",
+        ),
+    ] = None,
     brand: Annotated[str | None, typer.Option("--brand")] = None,
     model: Annotated[str | None, typer.Option("--model")] = None,
     fit_notes: Annotated[str | None, typer.Option("--fit-notes")] = None,
@@ -231,6 +252,7 @@ def remember(
             "item": item,
             "size": size,
             "system": system,
+            "equivalents": _parse_equivalent_options(equivalent),
             "brand": brand,
             "model": model,
             "fit_notes": fit_notes,
@@ -253,6 +275,11 @@ def size_update(
     item: Annotated[str | None, typer.Option("--item")] = None,
     size: Annotated[str | None, typer.Option("--size")] = None,
     system: Annotated[str | None, typer.Option("--system")] = None,
+    equivalent: Annotated[
+        list[str] | None,
+        typer.Option("--equivalent", help="Replacement equivalent SYSTEM:SIZE; repeat as needed"),
+    ] = None,
+    clear_equivalents: Annotated[bool, typer.Option("--clear-equivalents")] = False,
     brand: Annotated[str | None, typer.Option("--brand")] = None,
     model: Annotated[str | None, typer.Option("--model")] = None,
     fit_notes: Annotated[str | None, typer.Option("--fit-notes")] = None,
@@ -265,12 +292,24 @@ def size_update(
     """Correct one existing size record in place."""
     supplied = any(
         value is not None
-        for value in (item, size, system, brand, model, fit_notes, notes, measured_on)
-    ) or clear_measured_on
+        for value in (
+            item,
+            size,
+            system,
+            equivalent,
+            brand,
+            model,
+            fit_notes,
+            notes,
+            measured_on,
+        )
+    ) or clear_measured_on or clear_equivalents
     if not supplied:
         raise typer.BadParameter("provide at least one field to update")
     if measured_on is not None and clear_measured_on:
         raise typer.BadParameter("use either --measured-on or --clear-measured-on")
+    if equivalent is not None and clear_equivalents:
+        raise typer.BadParameter("use either --equivalent or --clear-equivalents")
 
     base_url = _base_url(url)
     person_id = _resolved_person_id(
@@ -291,6 +330,10 @@ def size_update(
     }.items():
         if value is not None:
             changes[key] = value
+    if equivalent is not None:
+        changes["equivalents"] = _parse_equivalent_options(equivalent)
+    elif clear_equivalents:
+        changes["equivalents"] = []
     if measured_on is not None:
         changes["measured_on"] = measured_on
     elif clear_measured_on:
@@ -384,6 +427,13 @@ def get_sizes(
         for record in records:
             marker = "" if record["is_current"] else " (previous)"
             system_text = f" {record['system']}" if record.get("system") else ""
+            equivalents_text = ""
+            if record.get("equivalents"):
+                formatted = ", ".join(
+                    f"{entry['size']} {entry['system']}" if entry.get("system") else entry["size"]
+                    for entry in record["equivalents"]
+                )
+                equivalents_text = f" · also {formatted}"
             brand_text = f" · {record['brand']}" if record.get("brand") else ""
             review_text = (
                 f" · {review_status[record['id']]}"
@@ -392,7 +442,7 @@ def get_sizes(
             )
             lines.append(
                 f"- {record['item']}: "
-                f"{record['size']}{system_text}{brand_text}{review_text}{marker}"
+                f"{record['size']}{system_text}{equivalents_text}{brand_text}{review_text}{marker}"
             )
         human = "\n".join(lines)
     _emit(payload, json_output=json_output, human=human)
@@ -436,7 +486,3 @@ def health(
     """Check whether the Size Note service is reachable."""
     payload = _request("GET", f"{_base_url(url)}/health")
     _emit(payload, json_output=json_output, human=f"Size Note {payload['version']} is healthy.")
-
-
-if __name__ == "__main__":
-    app()
