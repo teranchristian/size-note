@@ -12,10 +12,12 @@ from size_note.schemas import PersonCreate, PersonUpdate, SizeCreate, SizeUpdate
 from size_note.services.people import (
     add_alias,
     create_person,
+    delete_alias,
     delete_person,
     get_person,
     list_people,
     resolve_person,
+    update_alias,
     update_person,
 )
 from size_note.services.sizes import (
@@ -86,6 +88,30 @@ def _person_stage(person) -> str:
         person.birth_month,
         person.birth_day,
     )
+
+
+def _person_values(person) -> dict[str, str]:
+    return {
+        "name": person.name,
+        "growth_stage": _person_stage(person),
+        "birth": _birth_text(person),
+        "notes": person.notes or "",
+    }
+
+
+def _edit_person_context(
+    person,
+    *,
+    values: dict[str, str] | None = None,
+    error: str | None = None,
+    alias_error: str | None = None,
+) -> dict:
+    return {
+        "person": person,
+        "values": values or _person_values(person),
+        "error": error,
+        "alias_error": alias_error,
+    }
 
 
 def _size_form_error(exc: DomainError | ValueError) -> str:
@@ -228,16 +254,10 @@ def edit_person(
     request: Request, person_id: str, session: SessionDependency
 ) -> HTMLResponse:
     person = get_person(session, person_id)
-    values = {
-        "name": person.name,
-        "growth_stage": _person_stage(person),
-        "birth": _birth_text(person),
-        "notes": person.notes or "",
-    }
     return render(
         request,
         "edit_person.html",
-        {"person": person, "values": values, "error": None},
+        _edit_person_context(person),
     )
 
 
@@ -275,11 +295,11 @@ def edit_person_web(
         return render(
             request,
             "edit_person.html",
-            {
-                "person": person,
-                "values": values,
-                "error": message or "Please check the form.",
-            },
+            _edit_person_context(
+                person,
+                values=values,
+                error=message or "Please check the form.",
+            ),
             status_code=400,
         )
     return RedirectResponse(
@@ -329,10 +349,63 @@ def confirm_alias_web(
     person_id: str,
     session: SessionDependency,
     alias: Annotated[str, Form(min_length=1, max_length=160)],
-) -> RedirectResponse:
-    add_alias(session, person_id, alias)
+    return_to: Annotated[str, Form()] = "detail",
+) -> HTMLResponse | RedirectResponse:
+    try:
+        add_alias(session, person_id, alias)
+    except DomainError as exc:
+        if return_to != "edit":
+            raise
+        person = get_person(session, person_id)
+        return render(
+            request,
+            "edit_person.html",
+            _edit_person_context(person, alias_error=exc.message),
+            status_code=400,
+        )
+    route_name = "edit_person" if return_to == "edit" else "person_detail"
     return RedirectResponse(
-        request.url_for("person_detail", person_id=person_id), status_code=303
+        request.url_for(route_name, person_id=person_id), status_code=303
+    )
+
+
+@router.post(
+    "/people/{person_id}/aliases/{alias_id}/edit", name="update_alias_web"
+)
+def update_alias_web(
+    request: Request,
+    person_id: str,
+    alias_id: str,
+    session: SessionDependency,
+    alias: Annotated[str, Form(min_length=1, max_length=160)],
+) -> HTMLResponse | RedirectResponse:
+    try:
+        update_alias(session, person_id, alias_id, alias)
+    except DomainError as exc:
+        person = get_person(session, person_id)
+        return render(
+            request,
+            "edit_person.html",
+            _edit_person_context(person, alias_error=exc.message),
+            status_code=400,
+        )
+    return RedirectResponse(
+        request.url_for("edit_person", person_id=person_id), status_code=303
+    )
+
+
+@router.post(
+    "/people/{person_id}/aliases/{alias_id}/delete", name="delete_alias_web"
+)
+def delete_alias_web(
+    request: Request,
+    person_id: str,
+    alias_id: str,
+    session: SessionDependency,
+) -> RedirectResponse:
+    delete_alias(session, person_id, alias_id)
+    return RedirectResponse(
+        request.url_for("edit_person", person_id=person_id), status_code=303
     )
 
 
