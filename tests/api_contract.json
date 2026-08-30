@@ -1,930 +1,170 @@
 {
   "paths": {
     "/api/people": {
-      "get": {
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/PersonRead"
-                  },
-                  "type": "array"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PersonCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PersonRead"
-                }
-              }
-            }
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
+      "get": {"responses": {"200": {"content": {"application/json": {"schema": {"items": {"$ref": "#/components/schemas/PersonRead"}, "type": "array"}}}}}},
+      "post": {"requestBody": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/PersonCreate"}}}, "required": true}, "responses": {"201": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/PersonRead"}}}}, "422": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/HTTPValidationError"}}}}}}
     },
     "/api/people/resolve": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PersonResolveRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PersonResolveResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
+      "post": {"requestBody": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/PersonResolveRequest"}}}, "required": true}, "responses": {"200": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/PersonResolveResponse"}}}}, "422": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/HTTPValidationError"}}}}}}
     },
     "/api/people/{person_id}": {
-      "get": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "person_id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PersonRead"
-                }
-              }
-            }
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "patch": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "person_id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PersonUpdate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PersonRead"
-                }
-              }
-            }
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
+      "get": {"parameters": [{"in": "path", "name": "person_id", "required": true, "schema": {"type": "string"}}], "responses": {"200": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/PersonRead"}}}}, "422": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/HTTPValidationError"}}}}}},
+      "patch": {"parameters": [{"in": "path", "name": "person_id", "required": true, "schema": {"type": "string"}}], "requestBody": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/PersonUpdate"}}}, "required": true}, "responses": {"200": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/PersonRead"}}}}, "422": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/HTTPValidationError"}}}}}}
     },
     "/api/people/{person_id}/aliases": {
-      "post": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "person_id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AliasCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PersonRead"
-                }
-              }
-            }
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
+      "post": {"parameters": [{"in": "path", "name": "person_id", "required": true, "schema": {"type": "string"}}], "requestBody": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/AliasCreate"}}}, "required": true}, "responses": {"200": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/PersonRead"}}}}, "422": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/HTTPValidationError"}}}}}}
     },
     "/api/people/{person_id}/sizes": {
-      "get": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "person_id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "history",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/SizeRead"
-                  },
-                  "type": "array"
-                }
-              }
-            }
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
+      "get": {"parameters": [{"in": "path", "name": "person_id", "required": true, "schema": {"type": "string"}}, {"in": "query", "name": "history", "required": false, "schema": {"default": true, "type": "boolean"}}], "responses": {"200": {"content": {"application/json": {"schema": {"items": {"$ref": "#/components/schemas/SizeRead"}, "type": "array"}}}}, "422": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/HTTPValidationError"}}}}}}
     },
     "/api/reviews": {
-      "get": {
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/ReviewRead"
-                  },
-                  "type": "array"
-                }
-              }
-            }
-          }
-        }
-      }
+      "get": {"responses": {"200": {"content": {"application/json": {"schema": {"items": {"$ref": "#/components/schemas/ReviewRead"}, "type": "array"}}}}}}
     },
     "/api/sizes": {
-      "post": {
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SizeCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SizeSaveResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
+      "post": {"requestBody": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/SizeCreate"}}}, "required": true}, "responses": {"200": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/SizeSaveResponse"}}}}, "422": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/HTTPValidationError"}}}}}}
     },
     "/api/sizes/{size_id}/verify": {
-      "post": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "size_id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SizeSaveResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
+      "post": {"parameters": [{"in": "path", "name": "size_id", "required": true, "schema": {"type": "string"}}], "responses": {"200": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/SizeSaveResponse"}}}}, "422": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/HTTPValidationError"}}}}}}
     },
     "/health": {
-      "get": {
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HealthRead"
-                }
-              }
-            }
-          }
-        }
-      }
+      "get": {"responses": {"200": {"content": {"application/json": {"schema": {"$ref": "#/components/schemas/HealthRead"}}}}}}
     }
   },
   "schemas": {
-    "AliasCreate": {
-      "properties": {
-        "alias": {
-          "maxLength": 160,
-          "minLength": 1,
-          "type": "string"
-        }
-      },
-      "required": [
-        "alias"
-      ],
-      "type": "object"
-    },
-    "HTTPValidationError": {
-      "properties": {
-        "detail": {
-          "items": {
-            "$ref": "#/components/schemas/ValidationError"
-          },
-          "type": "array"
-        }
-      },
-      "type": "object"
-    },
-    "HealthRead": {
-      "properties": {
-        "status": {
-          "const": "ok",
-          "default": "ok",
-          "type": "string"
-        },
-        "version": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "version"
-      ],
-      "type": "object"
-    },
+    "AliasCreate": {"properties": {"alias": {"maxLength": 160, "minLength": 1, "type": "string"}}, "required": ["alias"], "type": "object"},
+    "HTTPValidationError": {"properties": {"detail": {"items": {"$ref": "#/components/schemas/ValidationError"}, "type": "array"}}, "type": "object"},
+    "HealthRead": {"properties": {"status": {"const": "ok", "default": "ok", "type": "string"}, "version": {"type": "string"}}, "required": ["version"], "type": "object"},
     "PersonCandidate": {
       "properties": {
-        "growth_stage": {
-          "enum": [
-            "adult",
-            "child"
-          ],
-          "type": "string"
-        },
-        "id": {
-          "type": "string"
-        },
-        "match_type": {
-          "enum": [
-            "name",
-            "alias",
-            "similar"
-          ],
-          "type": "string"
-        },
-        "matched_value": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "score": {
-          "type": "number"
-        }
+        "growth_stage": {"enum": ["adult", "child"], "type": "string"},
+        "id": {"type": "string"},
+        "match_type": {"enum": ["name", "alias", "similar"], "type": "string"},
+        "matched_value": {"type": "string"},
+        "name": {"type": "string"},
+        "score": {"type": "number"}
       },
-      "required": [
-        "id",
-        "name",
-        "growth_stage",
-        "matched_value",
-        "match_type",
-        "score"
-      ],
+      "required": ["id", "name", "growth_stage", "matched_value", "match_type", "score"],
       "type": "object"
     },
     "PersonCreate": {
       "properties": {
-        "aliases": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "growth_stage": {
-          "default": "adult",
-          "enum": [
-            "adult",
-            "child"
-          ],
-          "type": "string"
-        },
-        "name": {
-          "maxLength": 160,
-          "minLength": 1,
-          "type": "string"
-        },
-        "notes": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
+        "aliases": {"items": {"type": "string"}, "type": "array"},
+        "growth_stage": {"default": "adult", "enum": ["adult", "child"], "type": "string"},
+        "name": {"maxLength": 160, "minLength": 1, "type": "string"},
+        "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]}
       },
-      "required": [
-        "name"
-      ],
+      "required": ["name"],
       "type": "object"
     },
     "PersonRead": {
       "properties": {
-        "aliases": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "created_at": {
-          "format": "date-time",
-          "type": "string"
-        },
-        "growth_stage": {
-          "enum": [
-            "adult",
-            "child"
-          ],
-          "type": "string"
-        },
-        "id": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "notes": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "updated_at": {
-          "format": "date-time",
-          "type": "string"
-        }
+        "aliases": {"items": {"type": "string"}, "type": "array"},
+        "created_at": {"format": "date-time", "type": "string"},
+        "growth_stage": {"enum": ["adult", "child"], "type": "string"},
+        "id": {"type": "string"},
+        "name": {"type": "string"},
+        "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "updated_at": {"format": "date-time", "type": "string"}
       },
-      "required": [
-        "id",
-        "name",
-        "growth_stage",
-        "notes",
-        "aliases",
-        "created_at",
-        "updated_at"
-      ],
+      "required": ["id", "name", "growth_stage", "notes", "aliases", "created_at", "updated_at"],
       "type": "object"
     },
-    "PersonResolveRequest": {
-      "properties": {
-        "name": {
-          "maxLength": 160,
-          "minLength": 1,
-          "type": "string"
-        }
-      },
-      "required": [
-        "name"
-      ],
-      "type": "object"
-    },
+    "PersonResolveRequest": {"properties": {"name": {"maxLength": 160, "minLength": 1, "type": "string"}}, "required": ["name"], "type": "object"},
     "PersonResolveResponse": {
       "properties": {
-        "candidates": {
-          "items": {
-            "$ref": "#/components/schemas/PersonCandidate"
-          },
-          "type": "array"
-        },
-        "query": {
-          "type": "string"
-        },
-        "status": {
-          "enum": [
-            "exact_match",
-            "alias_match",
-            "confirmation_required",
-            "multiple_matches",
-            "not_found"
-          ],
-          "type": "string"
-        }
+        "candidates": {"items": {"$ref": "#/components/schemas/PersonCandidate"}, "type": "array"},
+        "query": {"type": "string"},
+        "status": {"enum": ["exact_match", "alias_match", "confirmation_required", "multiple_matches", "not_found"], "type": "string"}
       },
-      "required": [
-        "status",
-        "query"
-      ],
+      "required": ["status", "query"],
       "type": "object"
     },
     "PersonUpdate": {
       "properties": {
-        "growth_stage": {
-          "anyOf": [
-            {
-              "enum": [
-                "adult",
-                "child"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "name": {
-          "anyOf": [
-            {
-              "maxLength": 160,
-              "minLength": 1,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "notes": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
+        "growth_stage": {"anyOf": [{"enum": ["adult", "child"], "type": "string"}, {"type": "null"}]},
+        "name": {"anyOf": [{"maxLength": 160, "minLength": 1, "type": "string"}, {"type": "null"}]},
+        "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]}
       },
       "type": "object"
     },
     "ReviewRead": {
       "properties": {
-        "due_at": {
-          "format": "date-time",
-          "type": "string"
-        },
-        "item": {
-          "type": "string"
-        },
-        "person_id": {
-          "type": "string"
-        },
-        "person_name": {
-          "type": "string"
-        },
-        "size": {
-          "type": "string"
-        },
-        "size_id": {
-          "type": "string"
-        },
-        "status": {
-          "enum": [
-            "current",
-            "review_soon",
-            "due"
-          ],
-          "type": "string"
-        },
-        "system": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "verified_at": {
-          "format": "date-time",
-          "type": "string"
-        }
+        "due_at": {"format": "date-time", "type": "string"},
+        "item": {"type": "string"},
+        "person_id": {"type": "string"},
+        "person_name": {"type": "string"},
+        "size": {"type": "string"},
+        "size_id": {"type": "string"},
+        "status": {"enum": ["current", "review_soon", "due"], "type": "string"},
+        "system": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "verified_at": {"format": "date-time", "type": "string"}
       },
-      "required": [
-        "person_id",
-        "person_name",
-        "size_id",
-        "item",
-        "size",
-        "system",
-        "verified_at",
-        "due_at",
-        "status"
-      ],
+      "required": ["person_id", "person_name", "size_id", "item", "size", "system", "verified_at", "due_at", "status"],
       "type": "object"
     },
     "SizeCreate": {
       "properties": {
-        "brand": {
-          "anyOf": [
-            {
-              "maxLength": 160,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "fit_notes": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "item": {
-          "maxLength": 120,
-          "minLength": 1,
-          "type": "string"
-        },
-        "measured_on": {
-          "anyOf": [
-            {
-              "format": "date",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "model": {
-          "anyOf": [
-            {
-              "maxLength": 160,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "notes": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "person_id": {
-          "type": "string"
-        },
-        "size": {
-          "maxLength": 120,
-          "minLength": 1,
-          "type": "string"
-        },
-        "system": {
-          "anyOf": [
-            {
-              "maxLength": 120,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "verified_at": {
-          "anyOf": [
-            {
-              "format": "date-time",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
+        "brand": {"anyOf": [{"maxLength": 160, "type": "string"}, {"type": "null"}]},
+        "equivalents": {"items": {"$ref": "#/components/schemas/SizeEquivalent"}, "type": "array"},
+        "fit_notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "item": {"maxLength": 120, "minLength": 1, "type": "string"},
+        "measured_on": {"anyOf": [{"format": "date", "type": "string"}, {"type": "null"}]},
+        "model": {"anyOf": [{"maxLength": 160, "type": "string"}, {"type": "null"}]},
+        "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "person_id": {"type": "string"},
+        "size": {"maxLength": 120, "minLength": 1, "type": "string"},
+        "system": {"anyOf": [{"maxLength": 120, "type": "string"}, {"type": "null"}]},
+        "verified_at": {"anyOf": [{"format": "date-time", "type": "string"}, {"type": "null"}]}
       },
-      "required": [
-        "person_id",
-        "item",
-        "size"
-      ],
+      "required": ["person_id", "item", "size"],
+      "type": "object"
+    },
+    "SizeEquivalent": {
+      "properties": {
+        "size": {"maxLength": 120, "minLength": 1, "type": "string"},
+        "system": {"anyOf": [{"maxLength": 120, "type": "string"}, {"type": "null"}]}
+      },
+      "required": ["size"],
       "type": "object"
     },
     "SizeRead": {
       "properties": {
-        "brand": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "created_at": {
-          "format": "date-time",
-          "type": "string"
-        },
-        "fit_notes": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "id": {
-          "type": "string"
-        },
-        "is_current": {
-          "type": "boolean"
-        },
-        "item": {
-          "type": "string"
-        },
-        "measured_on": {
-          "anyOf": [
-            {
-              "format": "date",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "model": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "notes": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "person_id": {
-          "type": "string"
-        },
-        "size": {
-          "type": "string"
-        },
-        "superseded_at": {
-          "anyOf": [
-            {
-              "format": "date-time",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "system": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "verified_at": {
-          "format": "date-time",
-          "type": "string"
-        }
+        "brand": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "created_at": {"format": "date-time", "type": "string"},
+        "equivalents": {"items": {"$ref": "#/components/schemas/SizeEquivalent"}, "type": "array"},
+        "fit_notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "id": {"type": "string"},
+        "is_current": {"type": "boolean"},
+        "item": {"type": "string"},
+        "measured_on": {"anyOf": [{"format": "date", "type": "string"}, {"type": "null"}]},
+        "model": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "person_id": {"type": "string"},
+        "size": {"type": "string"},
+        "superseded_at": {"anyOf": [{"format": "date-time", "type": "string"}, {"type": "null"}]},
+        "system": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "verified_at": {"format": "date-time", "type": "string"}
       },
-      "required": [
-        "id",
-        "person_id",
-        "item",
-        "size",
-        "system",
-        "brand",
-        "model",
-        "fit_notes",
-        "notes",
-        "measured_on",
-        "verified_at",
-        "is_current",
-        "superseded_at",
-        "created_at"
-      ],
+      "required": ["id", "person_id", "item", "size", "system", "equivalents", "brand", "model", "fit_notes", "notes", "measured_on", "verified_at", "is_current", "superseded_at", "created_at"],
       "type": "object"
     },
     "SizeSaveResponse": {
       "properties": {
-        "action": {
-          "enum": [
-            "created",
-            "updated",
-            "verified"
-          ],
-          "type": "string"
-        },
-        "record": {
-          "$ref": "#/components/schemas/SizeRead"
-        }
+        "action": {"enum": ["created", "updated", "verified"], "type": "string"},
+        "record": {"$ref": "#/components/schemas/SizeRead"}
       },
-      "required": [
-        "action",
-        "record"
-      ],
+      "required": ["action", "record"],
       "type": "object"
     },
     "ValidationError": {
       "properties": {
-        "ctx": {
-          "type": "object"
-        },
+        "ctx": {"type": "object"},
         "input": {},
-        "loc": {
-          "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "integer"
-              }
-            ]
-          },
-          "type": "array"
-        },
-        "msg": {
-          "type": "string"
-        },
-        "type": {
-          "type": "string"
-        }
+        "loc": {"items": {"anyOf": [{"type": "string"}, {"type": "integer"}]}, "type": "array"},
+        "msg": {"type": "string"},
+        "type": {"type": "string"}
       },
-      "required": [
-        "loc",
-        "msg",
-        "type"
-      ],
+      "required": ["loc", "msg", "type"],
       "type": "object"
     }
   }

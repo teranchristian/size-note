@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -47,11 +48,13 @@ def save_size(session: Session, data: SizeCreate) -> SaveResult:
     system = optional_text(data.system)
     brand = optional_text(data.brand)
     model = optional_text(data.model)
+    equivalents = _clean_equivalents(
+        data.equivalents, primary_size=size_value, primary_system=system
+    )
 
     identity = {
         "person_id": data.person_id,
         "item_key": normalize(item),
-        "system_key": normalize(system),
         "brand_key": normalize(brand),
         "model_key": normalize(model),
     }
@@ -60,7 +63,6 @@ def save_size(session: Session, data: SizeCreate) -> SaveResult:
             select(SizeRecord).where(
                 SizeRecord.person_id == identity["person_id"],
                 SizeRecord.item_key == identity["item_key"],
-                SizeRecord.system_key == identity["system_key"],
                 SizeRecord.brand_key == identity["brand_key"],
                 SizeRecord.model_key == identity["model_key"],
                 SizeRecord.is_current.is_(True),
@@ -68,15 +70,29 @@ def save_size(session: Session, data: SizeCreate) -> SaveResult:
         ).all()
     )
 
-    same = next((record for record in current if record.size_key == normalize(size_value)), None)
+    incoming_keys = _representation_keys(size_value, system, equivalents)
+    same = next(
+        (record for record in current if _record_representation_keys(record) & incoming_keys),
+        None,
+    )
     if same is not None:
         same.verified_at = now
+        same.equivalents = _merge_equivalents(
+            same,
+            incoming_size=size_value,
+            incoming_system=system,
+            incoming_equivalents=equivalents,
+        )
         if data.measured_on is not None:
             same.measured_on = data.measured_on
         if data.fit_notes is not None:
             same.fit_notes = optional_text(data.fit_notes)
         if data.notes is not None:
             same.notes = optional_text(data.notes)
+        for record in current:
+            if record.id != same.id:
+                record.is_current = False
+                record.superseded_at = now
         session.commit()
         session.refresh(same)
         return SaveResult(action="verified", record=same)
@@ -92,6 +108,8 @@ def save_size(session: Session, data: SizeCreate) -> SaveResult:
         size_value=size_value,
         size_key=normalize(size_value),
         size_system=system,
+        system_key=normalize(system),
+        equivalents=equivalents,
         brand=brand,
         model=model,
         fit_notes=optional_text(data.fit_notes),
@@ -130,6 +148,18 @@ def update_size(
         record.notes = optional_text(data.notes)
     if "measured_on" in data.model_fields_set:
         record.measured_on = data.measured_on
+    if "equivalents" in data.model_fields_set:
+        record.equivalents = _clean_equivalents(
+            data.equivalents or [],
+            primary_size=record.size_value,
+            primary_system=record.size_system,
+        )
+    else:
+        record.equivalents = _clean_equivalents(
+            record.equivalents or [],
+            primary_size=record.size_value,
+            primary_system=record.size_system,
+        )
 
     record.item_key = normalize(record.item)
     record.size_key = normalize(record.size_value)
@@ -143,7 +173,6 @@ def update_size(
                 SizeRecord.id != record.id,
                 SizeRecord.person_id == record.person_id,
                 SizeRecord.item_key == record.item_key,
-                SizeRecord.system_key == record.system_key,
                 SizeRecord.brand_key == record.brand_key,
                 SizeRecord.model_key == record.model_key,
                 SizeRecord.is_current.is_(True),
@@ -152,7 +181,7 @@ def update_size(
         if conflict is not None:
             session.rollback()
             raise ConflictError(
-                "Another current size already uses that item, system, brand, and model.",
+                "Another current size already uses that item, brand, and model.",
                 code="size_identity_conflict",
             )
 
@@ -173,7 +202,6 @@ def delete_size(
                 SizeRecord.id != record.id,
                 SizeRecord.person_id == record.person_id,
                 SizeRecord.item_key == record.item_key,
-                SizeRecord.system_key == record.system_key,
                 SizeRecord.brand_key == record.brand_key,
                 SizeRecord.model_key == record.model_key,
                 SizeRecord.is_current.is_(False),
@@ -239,6 +267,62 @@ def list_reviews(session: Session, *, now: datetime | None = None) -> list[Revie
     priority = {"due": 0, "review_soon": 1, "current": 2}
     reviews.sort(key=lambda review: (priority[review.status], review.due_at, review.person.name))
     return reviews
+
+
+def _value(entry: Any, key: str) -> Any:
+    if isinstance(entry, dict):
+        return entry.get(key)
+    return getattr(entry, key)
+
+
+def _clean_equivalents(
+    values: list[Any], *, primary_size: str, primary_system: str | None
+) -> list[dict[str, str | None]]:
+    primary_key = _representation_key(primary_size, primary_system)
+    seen = {primary_key}
+    result: list[dict[str, str | None]] = []
+    for entry in values:
+        size = clean_text(str(_value(entry, "size")))
+        system = optional_text(_value(entry, "system"))
+        key = _representation_key(size, system)
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append({"size": size, "system": system})
+    return result
+
+
+def _representation_key(size: str, system: str | None) -> tuple[str, str]:
+    return normalize(size), normalize(system)
+
+
+def _representation_keys(
+    size: str, system: str | None, equivalents: list[dict[str, str | None]]
+) -> set[tuple[str, str]]:
+    keys = {_representation_key(size, system)}
+    keys.update(_representation_key(entry["size"], entry.get("system")) for entry in equivalents)
+    return keys
+
+
+def _record_representation_keys(record: SizeRecord) -> set[tuple[str, str]]:
+    return _representation_keys(
+        record.size_value, record.size_system, record.equivalents or []
+    )
+
+
+def _merge_equivalents(
+    record: SizeRecord,
+    *,
+    incoming_size: str,
+    incoming_system: str | None,
+    incoming_equivalents: list[dict[str, str | None]],
+) -> list[dict[str, str | None]]:
+    values: list[dict[str, str | None]] = list(record.equivalents or [])
+    values.append({"size": incoming_size, "system": incoming_system})
+    values.extend(incoming_equivalents)
+    return _clean_equivalents(
+        values, primary_size=record.size_value, primary_system=record.size_system
+    )
 
 
 def _as_utc(value: datetime) -> datetime:

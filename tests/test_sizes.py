@@ -34,27 +34,75 @@ def test_size_updates_preserve_history_and_same_value_only_verifies(client, crea
     assert records[1]["superseded_at"] is not None
 
 
-def test_confirmed_sizes_in_different_systems_can_coexist(client, create_person):
+def test_equivalent_shoe_systems_are_one_fit_record(client, create_person):
     person = create_person("Sam", growth_stage="child")
-    for size, system in [("15 cm", "JP"), ("8", "AU Kids")]:
-        response = client.post(
-            "/api/sizes",
-            json={
-                "person_id": person["id"],
-                "item": "Shoes",
-                "size": size,
-                "system": system,
-            },
-        )
-        assert response.json()["action"] == "created"
+    created = client.post(
+        "/api/sizes",
+        json={
+            "person_id": person["id"],
+            "item": "Shoes",
+            "size": "25.25",
+            "system": "CM",
+            "equivalents": [
+                {"size": "40", "system": "EU"},
+                {"size": "7", "system": "US"},
+            ],
+            "brand": "ASICS",
+            "model": "1011B004",
+        },
+    )
+
+    assert created.status_code == 200
+    assert created.json()["action"] == "created"
+    assert created.json()["record"]["equivalents"] == [
+        {"size": "40", "system": "EU"},
+        {"size": "7", "system": "US"},
+    ]
+
+    verified_from_equivalent = client.post(
+        "/api/sizes",
+        json={
+            "person_id": person["id"],
+            "item": "Shoes",
+            "size": "40",
+            "system": "EU",
+            "equivalents": [{"size": "25.25", "system": "CM"}],
+            "brand": "ASICS",
+            "model": "1011B004",
+        },
+    )
+    assert verified_from_equivalent.json()["action"] == "verified"
 
     current = client.get(
         f"/api/people/{person['id']}/sizes", params={"history": "false"}
     ).json()
-    assert {(record["size"], record["system"]) for record in current} == {
-        ("15 cm", "JP"),
-        ("8", "AU Kids"),
-    }
+    assert len(current) == 1
+    assert current[0]["size"] == "25.25"
+    assert current[0]["system"] == "CM"
+    assert current[0]["equivalents"] == [
+        {"size": "40", "system": "EU"},
+        {"size": "7", "system": "US"},
+    ]
+
+
+def test_equivalent_sizes_work_for_clothing_too(client, create_person):
+    person = create_person("Haru", growth_stage="child")
+    response = client.post(
+        "/api/sizes",
+        json={
+            "person_id": person["id"],
+            "item": "T-shirt",
+            "size": "90",
+            "system": "JP",
+            "equivalents": [{"size": "2T", "system": "US"}],
+        },
+    )
+
+    assert response.status_code == 200
+    record = response.json()["record"]
+    assert record["item"] == "T-shirt"
+    assert record["size"] == "90"
+    assert record["equivalents"] == [{"size": "2T", "system": "US"}]
 
 
 def test_child_review_rules_depend_on_item_not_relationship(client, create_person):
@@ -122,6 +170,7 @@ def test_explicit_size_edit_corrects_record_in_place(client, create_person):
             "item": "T-shirt",
             "size": "90",
             "system": "Japan",
+            "equivalents": [{"size": "2T", "system": "US"}],
             "fit_notes": "A little loose",
             "notes": "Wrong note",
             "measured_on": "2026-08-01",
@@ -132,6 +181,7 @@ def test_explicit_size_edit_corrects_record_in_place(client, create_person):
         f"/api/people/{person['id']}/sizes/{saved['id']}",
         json={
             "size": "95",
+            "equivalents": [{"size": "3T", "system": "US"}],
             "fit_notes": "Fits well",
             "notes": None,
             "measured_on": None,
@@ -141,6 +191,7 @@ def test_explicit_size_edit_corrects_record_in_place(client, create_person):
     assert edited.status_code == 200
     assert edited.json()["id"] == saved["id"]
     assert edited.json()["size"] == "95"
+    assert edited.json()["equivalents"] == [{"size": "3T", "system": "US"}]
     assert edited.json()["fit_notes"] == "Fits well"
     assert edited.json()["notes"] is None
     assert edited.json()["measured_on"] is None

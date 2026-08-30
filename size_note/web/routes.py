@@ -40,11 +40,40 @@ def render(request: Request, name: str, context: dict, *, status_code: int = 200
     )
 
 
+def _format_equivalents(record) -> str:
+    return "\n".join(
+        f"{entry.get('system') or 'Other'}: {entry['size']}"
+        for entry in (record.equivalents or [])
+    )
+
+
+def _parse_equivalents(value: str) -> list[dict[str, str | None]]:
+    result: list[dict[str, str | None]] = []
+    for raw_line in value.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if ":" not in line:
+            raise ValueError("Equivalent sizes must use SYSTEM: SIZE, one per line.")
+        system, size = (part.strip() for part in line.split(":", 1))
+        if not size:
+            raise ValueError("Equivalent sizes must include a size value.")
+        result.append({"system": system or None, "size": size})
+    return result
+
+
+def _size_form_error(exc: DomainError | ValueError) -> str:
+    if isinstance(exc, DomainError):
+        return exc.message
+    return str(exc) or "Please check the form."
+
+
 def _size_values(record) -> dict[str, str]:
     return {
         "item": record.item,
         "size": record.size_value,
         "system": record.size_system or "",
+        "equivalents": _format_equivalents(record),
         "brand": record.brand or "",
         "model": record.model or "",
         "fit_notes": record.fit_notes or "",
@@ -272,6 +301,7 @@ def save_size_web(
     item: Annotated[str, Form(min_length=1, max_length=120)],
     size: Annotated[str, Form(min_length=1, max_length=120)],
     system: Annotated[str, Form()] = "",
+    equivalents: Annotated[str, Form()] = "",
     brand: Annotated[str, Form()] = "",
     model: Annotated[str, Form()] = "",
     fit_notes: Annotated[str, Form()] = "",
@@ -283,6 +313,7 @@ def save_size_web(
         "item": item,
         "size": size,
         "system": system,
+        "equivalents": equivalents,
         "brand": brand,
         "model": model,
         "fit_notes": fit_notes,
@@ -297,6 +328,7 @@ def save_size_web(
                 item=item,
                 size=size,
                 system=system or None,
+                equivalents=_parse_equivalents(equivalents),
                 brand=brand or None,
                 model=model or None,
                 fit_notes=fit_notes or None,
@@ -305,7 +337,6 @@ def save_size_web(
             ),
         )
     except (DomainError, ValueError) as exc:
-        message = exc.message if isinstance(exc, DomainError) else "Please check the form."
         return render(
             request,
             "new_size.html",
@@ -313,7 +344,7 @@ def save_size_web(
                 "person": person,
                 "record": None,
                 "values": values,
-                "error": message,
+                "error": _size_form_error(exc),
                 "mode": "create",
             },
             status_code=400,
@@ -359,6 +390,7 @@ def edit_size_web(
     item: Annotated[str, Form(min_length=1, max_length=120)],
     size: Annotated[str, Form(min_length=1, max_length=120)],
     system: Annotated[str, Form()] = "",
+    equivalents: Annotated[str, Form()] = "",
     brand: Annotated[str, Form()] = "",
     model: Annotated[str, Form()] = "",
     fit_notes: Annotated[str, Form()] = "",
@@ -371,6 +403,7 @@ def edit_size_web(
         "item": item,
         "size": size,
         "system": system,
+        "equivalents": equivalents,
         "brand": brand,
         "model": model,
         "fit_notes": fit_notes,
@@ -385,6 +418,7 @@ def edit_size_web(
                 item=item,
                 size=size,
                 system=system or None,
+                equivalents=_parse_equivalents(equivalents),
                 brand=brand or None,
                 model=model or None,
                 fit_notes=fit_notes or None,
@@ -394,7 +428,6 @@ def edit_size_web(
             expected_person_id=person_id,
         )
     except (DomainError, ValueError) as exc:
-        message = exc.message if isinstance(exc, DomainError) else "Please check the form."
         return render(
             request,
             "new_size.html",
@@ -402,7 +435,7 @@ def edit_size_web(
                 "person": person,
                 "record": record,
                 "values": values,
-                "error": message,
+                "error": _size_form_error(exc),
                 "mode": "edit",
             },
             status_code=400,

@@ -73,6 +73,83 @@ def test_confirmed_match_can_store_alias_then_size(monkeypatch):
     assert calls[1][1].endswith("/api/sizes")
 
 
+def test_remember_groups_repeatable_equivalent_sizes(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        cli,
+        "_resolve",
+        lambda _url, _person: {
+            "status": "exact_match",
+            "query": "Christian",
+            "candidates": [{"id": "person-1", "name": "Christian"}],
+        },
+    )
+
+    def fake_request(method, url, **kwargs):
+        calls.append((method, url, kwargs))
+        return {
+            "action": "created",
+            "record": {
+                "item": "Shoes",
+                "size": "25.25",
+                "system": "CM",
+                "equivalents": [
+                    {"system": "EU", "size": "40"},
+                    {"system": "US", "size": "7"},
+                ],
+            },
+        }
+
+    monkeypatch.setattr(cli, "_request", fake_request)
+    result = runner.invoke(
+        cli.app,
+        [
+            "remember",
+            "--person",
+            "Christian",
+            "--item",
+            "Shoes",
+            "--size",
+            "25.25",
+            "--system",
+            "CM",
+            "--equivalent",
+            "EU:40",
+            "--equivalent",
+            "US:7",
+            "--brand",
+            "ASICS",
+            "--model",
+            "1011B004",
+            "--json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert calls == [
+        (
+            "POST",
+            "http://127.0.0.1:3010/api/sizes",
+            {
+                "json": {
+                    "person_id": "person-1",
+                    "item": "Shoes",
+                    "size": "25.25",
+                    "system": "CM",
+                    "equivalents": [
+                        {"system": "EU", "size": "40"},
+                        {"system": "US", "size": "7"},
+                    ],
+                    "brand": "ASICS",
+                    "model": "1011B004",
+                    "fit_notes": None,
+                    "notes": None,
+                }
+            },
+        )
+    ]
+
+
 def test_person_update_resolves_exact_person_then_patches(monkeypatch):
     calls = []
     monkeypatch.setattr(

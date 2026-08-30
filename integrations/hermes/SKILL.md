@@ -1,7 +1,7 @@
 ---
 name: size-note
 description: Save, update, retrieve, correct, or delete clothing, footwear, ring, hat, and other wearable sizes for people using the local Size Note CLI. Use when the user asks Hermes to remember what fits someone, check a saved size, correct a mistake, or remove Size Note data.
-version: 0.1.0
+version: 0.2.0
 license: MIT
 platforms: [linux, macos]
 prerequisites:
@@ -31,6 +31,24 @@ Never store relationship or birth information in a size record just because it a
 
 If a user gives both person context and a size in one request, save/update the person context separately and then save the size.
 
+## One physical fit = one size record
+
+A label may express the same fit in several sizing systems. Store those values together in one Size Note record, not as separate current sizes.
+
+Choose one confirmed value as the primary `--size`/`--system`, then pass every other confirmed representation with a repeatable `--equivalent "SYSTEM:SIZE"` option.
+
+For example, if an ASICS label says the same shoe is 25.25 cm, EU 40, and US 7, run one command:
+
+```bash
+size-note remember --person "Christian" --item "Shoes" --size "25.25" --system "CM" --equivalent "EU:40" --equivalent "US:7" --brand "ASICS" --model "1011B004" --json
+```
+
+Do **not** run `remember` three times for CM, EU, and US. They are representations of one physical fit.
+
+Use the same rule for clothing. Examples include a T-shirt marked `JP 90` plus `US 2T`, or pants marked in both a regional size and an equivalent size. `T-shirt`, `Pants`, `Trousers`, `Jacket`, and other wearable item names are valid; do not force everything into shoes.
+
+Only store equivalents explicitly provided by the user, label, manufacturer, or another trusted source. Do not calculate or guess conversions.
+
 ## Save a size
 
 Run:
@@ -39,7 +57,7 @@ Run:
 size-note remember --person "NAME" --item "ITEM" --size "SIZE" --system "SYSTEM" --json
 ```
 
-`--system`, `--brand`, `--model`, `--fit-notes`, and `--notes` are optional.
+`--system`, repeatable `--equivalent`, `--brand`, `--model`, `--fit-notes`, and `--notes` are optional.
 
 Handle the returned `status` safely:
 
@@ -99,6 +117,8 @@ Identify the exact intended record from the returned `sizes` array. If more than
 size-note size-update --person "Haru" --size-id "SIZE_ID" --size "95" --system "Japan" --json
 ```
 
+To replace its equivalent representations, repeat `--equivalent "SYSTEM:SIZE"`. To remove all equivalents, use `--clear-equivalents`.
+
 You may also correct `--item`, `--brand`, `--model`, `--fit-notes`, `--notes`, or `--measured-on`. Use `--clear-measured-on` only when the user explicitly wants that date removed.
 
 Use `remember` for a genuine new/current size observation; use `size-update` for correcting an existing saved record.
@@ -113,7 +133,7 @@ To delete one size, first run `get --json`, identify the exact record ID, and as
 size-note size-delete --person "Haru" --size-id "SIZE_ID" --confirm --json
 ```
 
-If the deleted record was current and had an older version of the same item/system/brand/model, Size Note restores the most recent previous version as current.
+If the deleted record was current and had an older version of the same item/brand/model fit, Size Note restores the most recent previous version as current.
 
 To delete a person, explain that all aliases and all size history for that person will also be deleted, then ask for confirmation. Only after explicit confirmation run:
 
@@ -131,7 +151,7 @@ Run:
 size-note get --person "NAME OR ALIAS" --current-only --json
 ```
 
-Mention the sizing system and brand when present. If an item is due for review, state that the saved value may be outdated instead of presenting it as certainly current.
+Mention the primary sizing system, confirmed equivalents, and brand when present. If an item is due for review, state that the saved value may be outdated instead of presenting it as certainly current.
 
 To check all child review reminders, run:
 
@@ -139,4 +159,4 @@ To check all child review reminders, run:
 size-note review --json
 ```
 
-Do not estimate size conversions unless Size Note explicitly returns an estimate. The initial release stores confirmed values only.
+Do not estimate size conversions unless Size Note explicitly returns an estimate. Size Note stores confirmed values only.

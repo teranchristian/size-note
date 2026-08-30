@@ -2,6 +2,7 @@ from datetime import UTC, date, datetime
 from uuid import uuid4
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     CheckConstraint,
     Date,
@@ -74,6 +75,14 @@ class SizeRecord(Base):
             "model_key",
             "is_current",
         ),
+        Index(
+            "ix_size_records_current_fit",
+            "person_id",
+            "item_key",
+            "brand_key",
+            "model_key",
+            "is_current",
+        ),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
@@ -86,6 +95,9 @@ class SizeRecord(Base):
     size_key: Mapped[str] = mapped_column(String(120), nullable=False)
     size_system: Mapped[str | None] = mapped_column(String(120), nullable=True)
     system_key: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    equivalents: Mapped[list[dict[str, str | None]]] = mapped_column(
+        JSON, nullable=False, default=list
+    )
     brand: Mapped[str | None] = mapped_column(String(160), nullable=True)
     brand_key: Mapped[str] = mapped_column(String(160), nullable=False, default="")
     model: Mapped[str | None] = mapped_column(String(160), nullable=True)

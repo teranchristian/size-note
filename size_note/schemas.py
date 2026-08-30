@@ -82,11 +82,22 @@ class PersonResolveResponse(BaseModel):
     candidates: list[PersonCandidate] = Field(default_factory=list)
 
 
+class SizeEquivalent(CleanModel):
+    size: str = Field(min_length=1, max_length=120)
+    system: str | None = Field(default=None, max_length=120)
+
+    @field_validator("system", mode="after")
+    @classmethod
+    def blank_system_to_none(cls, value: str | None) -> str | None:
+        return optional_text(value)
+
+
 class SizeCreate(CleanModel):
     person_id: str
     item: str = Field(min_length=1, max_length=120)
     size: str = Field(min_length=1, max_length=120)
     system: str | None = Field(default=None, max_length=120)
+    equivalents: list[SizeEquivalent] = Field(default_factory=list)
     brand: str | None = Field(default=None, max_length=160)
     model: str | None = Field(default=None, max_length=160)
     fit_notes: str | None = None
@@ -104,6 +115,7 @@ class SizeUpdate(CleanModel):
     item: str | None = Field(default=None, min_length=1, max_length=120)
     size: str | None = Field(default=None, min_length=1, max_length=120)
     system: str | None = Field(default=None, max_length=120)
+    equivalents: list[SizeEquivalent] | None = None
     brand: str | None = Field(default=None, max_length=160)
     model: str | None = Field(default=None, max_length=160)
     fit_notes: str | None = None
@@ -122,6 +134,7 @@ class SizeRead(BaseModel):
     item: str
     size: str
     system: str | None
+    equivalents: list[SizeEquivalent]
     brand: str | None
     model: str | None
     fit_notes: str | None

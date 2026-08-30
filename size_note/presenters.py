@@ -36,6 +36,7 @@ def size_read(record: SizeRecord) -> SizeRead:
         item=record.item,
         size=record.size_value,
         system=record.size_system,
+        equivalents=record.equivalents or [],
         brand=record.brand,
         model=record.model,
         fit_notes=record.fit_notes,
