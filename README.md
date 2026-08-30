@@ -5,7 +5,7 @@ Size Note is a private, self-hosted place to remember clothing, footwear, ring, 
 ## Current scope
 
 - Stores a canonical person name, confirmed aliases, an adult/child fallback, optional partial birth information, and optional notes.
-- Accepts birth information as `YYYY`, `YYYY-MM`, or `YYYY-MM-DD`; unknown month/day values are never invented.
+- Accepts birth information as year only, year + month, or a full date; unknown month/day values are never invented.
 - Uses birth information, when present, to determine whether a person is effectively a child or adult. Partial dates stay conservative until the person is definitely 18.
 - Keeps relationship and preference context in optional notes instead of building a family model.
 - Stores general or brand-specific sizes, sizing systems, models, and fit notes.
@@ -24,6 +24,10 @@ A person's birth information is optional. Store only the precision you actually 
 - `2024` — year only
 - `2024-05` — year and month
 - `2024-05-12` — exact date
+
+On the website, these are presented as three separate **Year**, **Month**, and **Day** fields instead of asking people to type an ISO date. All three are optional. Month is available only after a year is entered, and day is available only after a month is selected. Clearing the year also clears month/day; clearing the month also clears the day. The server validates the same hierarchy, so the rule does not depend on browser JavaScript.
+
+For Hermes and the CLI, the compact form remains convenient: `--birth 2024`, `--birth 2024-05`, or `--birth 2024-05-12`.
 
 Size Note does not convert an unknown birthday to January 1 or the first day of a month. When the exact age is uncertain, it uses the younger possible age so reminders do not stop too early.
 
