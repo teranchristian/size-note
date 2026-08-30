@@ -107,6 +107,27 @@ def youngest_possible_age(
     return _age_on(current, date(year, month, day))
 
 
+def approximate_age_years(
+    year: int,
+    month: int | None = None,
+    day: int | None = None,
+    *,
+    today: date | None = None,
+) -> int:
+    current = today or date.today()
+    validate_birth_parts(year, month, day, today=current)
+
+    if day is not None:
+        return _age_on(current, date(year, month, day))
+    if month is None:
+        return max(0, current.year - year)
+
+    age = current.year - year
+    if current.month < month:
+        age -= 1
+    return max(0, age)
+
+
 def effective_growth_stage(
     fallback: str,
     year: int | None,
