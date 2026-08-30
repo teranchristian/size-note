@@ -11,7 +11,6 @@
       <p class="eyebrow">{{ growth_stage|title }}</p>
       <h1>{{ person.name }}</h1>
       {% if birth_text %}<p>Born {{ birth_text }}</p>{% endif %}
-      {% if person.aliases %}<p>Also known as {{ person.aliases|map(attribute='alias')|join(', ') }}</p>{% endif %}
     </div>
   </section>
 
@@ -30,26 +29,19 @@
     </details>
   </section>
 
-  <section class="alias-card alias-summary-card">
-    <div class="alias-card-heading">
-      <div>
-        <strong>Aliases</strong>
-        <p>Alternative names or phrases that refer to {{ person.name }}.</p>
+  {% if person.aliases %}
+    <section class="alias-card alias-summary-card">
+      <div class="alias-card-heading">
+        <div>
+          <strong>Aliases</strong>
+          <p>Alternative names or phrases that refer to {{ person.name }}.</p>
+        </div>
       </div>
-      <a class="text-action" href="{{ url_for('edit_person', person_id=person.id) }}#aliases">Manage</a>
-    </div>
-    {% if person.aliases %}
       <div class="alias-chips">
         {% for entry in person.aliases %}<span class="alias-chip">{{ entry.alias }}</span>{% endfor %}
       </div>
-    {% else %}
-      <p class="empty-note alias-empty">No aliases yet.</p>
-    {% endif %}
-    <form class="inline-form alias-add-form" action="{{ url_for('confirm_alias_web', person_id=person.id) }}" method="post">
-      <input name="alias" aria-label="New alias" placeholder="e.g. Chris, me, my son" required>
-      <button type="submit">Add alias</button>
-    </form>
-  </section>
+    </section>
+  {% endif %}
 
   <div class="section-heading">
     <div><p class="eyebrow">Current sizes</p><h2>What fits now</h2></div>
