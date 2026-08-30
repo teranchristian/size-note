@@ -19,11 +19,11 @@
       <strong>Notes</strong>
       <span>{{ 'Person context' if person.notes else 'No notes yet' }}</span>
     </div>
-    {% if person.notes %}<p>{{ person.notes }}</p>{% else %}<p class="empty-note">Add relationship, preferences, or other person-level context.</p>{% endif %}
+    {% if person.notes %}<p>{{ person.notes }}</p>{% else %}<p class="empty-note">Add preferences or other person-level context.</p>{% endif %}
     <details class="notes-editor">
       <summary>{{ 'Edit note' if person.notes else 'Add note' }}</summary>
       <form class="notes-form" action="{{ url_for('update_person_notes_web', person_id=person.id) }}" method="post">
-        <textarea name="notes" aria-label="Person notes" placeholder="e.g. My son · Prefers soft fabrics">{{ person.notes or '' }}</textarea>
+        <textarea name="notes" aria-label="Person notes" placeholder="e.g. Prefers soft fabrics · Usually likes a relaxed fit">{{ person.notes or '' }}</textarea>
         <button type="submit">Save note</button>
       </form>
     </details>
