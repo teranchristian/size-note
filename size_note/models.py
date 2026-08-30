@@ -9,6 +9,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     String,
     Text,
 )
@@ -35,6 +36,9 @@ class Person(Base):
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     normalized_name: Mapped[str] = mapped_column(String(160), nullable=False, unique=True)
     growth_stage: Mapped[str] = mapped_column(String(16), nullable=False, default="adult")
+    birth_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    birth_month: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    birth_day: Mapped[int | None] = mapped_column(Integer, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
