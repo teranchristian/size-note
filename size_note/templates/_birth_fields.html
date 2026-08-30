@@ -1,0 +1,62 @@
+{% set birth_value = values.get('birth', '') %}
+{% set parts = birth_value.split('-') if birth_value else [] %}
+{% set birth_year = parts[0] if parts|length >= 1 else '' %}
+{% set birth_month = parts[1] if parts|length >= 2 else '' %}
+{% set birth_day = parts[2] if parts|length >= 3 else '' %}
+
+<fieldset class="birth-fields" data-birth-fields>
+  <legend>Date of birth <span>optional</span></legend>
+  <div class="birth-grid">
+    <div>
+      <label for="birth-year">Year <span>recommended for children</span></label>
+      <input
+        id="birth-year"
+        name="birth"
+        data-birth-year
+        value="{{ birth_year }}"
+        inputmode="numeric"
+        autocomplete="bday-year"
+        placeholder="2024"
+        aria-describedby="birth-help"
+      >
+    </div>
+
+    <div>
+      <label for="birth-month">Month <span>optional</span></label>
+      <select
+        id="birth-month"
+        data-birth-month
+        autocomplete="bday-month"
+        aria-describedby="birth-help"
+        {% if not birth_year %}disabled{% endif %}
+      >
+        <option value="">Unknown</option>
+        {% for value, label in [
+          ('01', 'January'), ('02', 'February'), ('03', 'March'), ('04', 'April'),
+          ('05', 'May'), ('06', 'June'), ('07', 'July'), ('08', 'August'),
+          ('09', 'September'), ('10', 'October'), ('11', 'November'), ('12', 'December')
+        ] %}
+          <option value="{{ value }}" {% if birth_month == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label for="birth-day">Day <span>optional</span></label>
+      <select
+        id="birth-day"
+        data-birth-day
+        autocomplete="bday-day"
+        aria-describedby="birth-help"
+        {% if not birth_month %}disabled{% endif %}
+      >
+        <option value="">Unknown</option>
+        {% for value in range(1, 32) %}
+          {% set padded = '%02d'|format(value) %}
+          <option value="{{ padded }}" {% if birth_day == padded %}selected{% endif %}>{{ value }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  <p class="field-help" id="birth-help">Year, month, and day are all optional. Month becomes available after a year is entered, and day becomes available after a month is selected. Size Note stores only the precision you provide.</p>
+</fieldset>
