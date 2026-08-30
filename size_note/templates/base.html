@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#17483d">
     <title>{% block title %}Size Note{% endblock %}</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', path='/size-note-icon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='/app.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='/person_birth.css') }}">
     <script defer src="{{ url_for('static', path='/person_birth.js') }}"></script>
@@ -12,7 +13,7 @@
   <body>
     <header class="site-header">
       <a class="brand" href="{{ url_for('home') }}" aria-label="Size Note home">
-        <span class="brand-mark">SN</span>
+        <img src="{{ url_for('static', path='/size-note-icon.svg') }}" alt="" aria-hidden="true" width="34" height="34" style="display:block;flex:0 0 auto;">
         <span>Size Note</span>
       </a>
       <a class="header-action" href="{{ url_for('new_person') }}">Add person</a>
