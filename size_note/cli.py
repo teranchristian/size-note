@@ -150,7 +150,10 @@ def person_delete(
         _emit(
             {
                 "status": "confirmation_required",
-                "detail": "Deleting a person also deletes all of their sizes. Pass --confirm only after explicit user confirmation.",
+                "detail": (
+                    "Deleting a person also deletes all of their sizes. "
+                    "Pass --confirm only after explicit user confirmation."
+                ),
             },
             json_output=json_output,
             human="Confirmation required. Nothing was deleted.",
