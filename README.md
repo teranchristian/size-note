@@ -5,9 +5,10 @@ Size Note is a private, self-hosted place to remember clothing, footwear, ring, 
 ## Current scope
 
 - Stores a canonical person name, confirmed aliases, an adult/child fallback, optional partial birth information, and optional notes.
+- Treats aliases as alternative names or identifying phrases such as `Alex`, `me`, `myself`, or `my son`.
+- Keeps stable preferences and other non-identity person context in optional notes.
 - Accepts birth information as year only, year + month, or a full date; unknown month/day values are never invented.
 - Uses birth information, when present, to determine whether a person is effectively a child or adult. Partial dates stay conservative until the person is definitely 18.
-- Keeps relationship and preference context in optional notes instead of building a family model.
 - Stores general or brand-specific sizes, sizing systems, models, and fit notes.
 - Groups confirmed equivalent sizing systems into one physical fit record.
 - Preserves previous sizes when a value changes.
@@ -16,6 +17,20 @@ Size Note is a private, self-hosted place to remember clothing, footwear, ring, 
 - Requires confirmation before a similar name becomes an alias.
 
 Automatic size conversion is intentionally outside the initial scope. Saved values are confirmed values.
+
+## Names, aliases, and notes
+
+Each person has one canonical display name. An **alias** is another name or phrase that should resolve to that same person. This includes nicknames, self-references, and relationship phrases when they identify one person unambiguously.
+
+Examples:
+
+- `Alexandra` with alias `Alex`
+- `Alex` with aliases `me` and `myself`
+- `Riley` with alias `my son`
+
+Aliases are for **identity**. Person notes are for stable facts or preferences that are not used to identify someone, such as `prefers soft fabrics` or `usually likes a relaxed fit`.
+
+A relationship phrase does not determine age. For example, `my son` can be stored as an alias when it clearly refers to one person, but Size Note still uses structured birth information or the explicit child/adult fallback for growth behavior. If a relationship phrase could refer to multiple people, confirm which person it means before saving it as an alias.
 
 ## People, birth information, and review timing
 
@@ -54,7 +69,7 @@ Size Note no longer silently assumes a new person is an adult.
 - If the user explicitly says child, birth information is useful for better reminders but remains optional.
 - If neither birth information nor an adult/child stage is known, ask which one applies before creating the person.
 
-Relationship words such as `my son` or `my mother` are person notes; they do not by themselves determine age.
+Aliases can be stored at creation time. For example, if `Riley` is the canonical name and `my son` is how the user refers to that person, store `my son` as an alias rather than as a note.
 
 ## Install on a Hermes host
 
@@ -69,7 +84,7 @@ hermes profile list
 
 Use `./install.sh --profile default` for the default Hermes profile. The installer rejects unknown profiles instead of creating new profile directories.
 
-This builds and starts the container, creates the persistent `data/` directory, installs the host CLI into `~/.local/bin`, copies the skill into the selected Hermes profile, verifies CLI health and Hermes skill discovery, and then asks you to start a new Hermes session. Rerunning the installer upgrades the application while preserving the SQLite database. Alembic applies schema upgrades automatically, so adding fields such as birth information does not require deleting the database.
+This builds and starts the container, creates the persistent `data/` directory, installs the host CLI into `~/.local/bin`, copies the skill into the selected Hermes profile, verifies CLI health and Hermes skill discovery, and then asks you to start a new Hermes session. Rerunning the installer upgrades the application while preserving the SQLite database. Alembic applies schema upgrades automatically, so adding fields does not require deleting the database.
 
 For a non-Hermes installation:
 
@@ -94,21 +109,39 @@ hermes -p my-profile skills list
 
 Then start a new Hermes session and ask it to remember or retrieve a size.
 
+## Using Size Note with Hermes
+
+Natural requests can include person identity, profile context, and size information together. Hermes should route each part to the appropriate Size Note field. Examples:
+
+- `Remember that Riley is my son and wears T-shirt size 90 in Japan.` → `my son` is an alias; the size is a T-shirt record.
+- `Remember that Alex is also me.` → `me` is an alias.
+- `Alex prefers soft fabrics.` → that preference belongs in person notes.
+- `What shoe size is my son?` → `my son` should resolve through the saved alias.
+
 ## CLI
 
 Create people:
 
 ```bash
-size-note person-add "Alexandra" --growth-stage adult
-size-note person-add "Haru" --birth 2024 --notes "My son"
+size-note person-add "Alexandra" --growth-stage adult --alias "Alex"
+size-note person-add "Riley" --birth 2024 --alias "my son"
 size-note person-add "Sam" --growth-stage child --notes "Prefers soft fabrics"
+```
+
+Manage aliases for an existing person:
+
+```bash
+size-note person-alias-list --person "Riley" --json
+size-note person-alias-add --person "Alexandra" --alias "Alex" --json
+size-note person-alias-update --person "Riley" --alias "my kid" --new-alias "my son" --json
+size-note person-alias-delete --person "Riley" --alias "my son" --confirm --json
 ```
 
 Update birth information later without changing the person's size history:
 
 ```bash
-size-note person-update --person "Haru" --birth 2024-05
-size-note person-update --person "Haru" --birth 2024-05-12
+size-note person-update --person "Riley" --birth 2024-05
+size-note person-update --person "Riley" --birth 2024-05-12
 ```
 
 Save and retrieve sizes:
@@ -134,7 +167,7 @@ size-note remember \
 
 Every command supports `--json`. Expected identity outcomes such as `confirmation_required`, `multiple_matches`, and `not_found` return structured data without changing anything.
 
-After a user confirms that `Alex` means the suggested Alexandra record:
+After a user confirms that `Alex` means the suggested Alexandra record, the existing size-save flow can also remember that wording as an alias:
 
 ```bash
 size-note remember \
@@ -145,6 +178,8 @@ size-note remember \
   --size M \
   --json
 ```
+
+For a standalone identity statement, prefer `person-alias-add`.
 
 ## Local development
 
@@ -162,7 +197,7 @@ uv run pytest
 ./scripts/requirements-lock.sh
 ```
 
-`tests/api_contract.json` locks the public routes and schemas. An intentional API change must be reviewed for CLI and Hermes compatibility before updating that contract snapshot.
+`tests/api_contract.json` locks the public routes and schemas. An intentional public API change must be reviewed for CLI and Hermes compatibility before updating that contract snapshot. Internal CLI-support routes are kept out of the public OpenAPI contract.
 
 `requirements.lock` is exported from `uv.lock` and is used by both Docker and the host installer, so fresh installations use the dependency versions tested by CI.
 
@@ -183,7 +218,7 @@ SQLite data lives at `data/size-note.db` and is mounted outside the container. D
 
 ## API
 
-Interactive API documentation is available at `/docs` while the service is running. Core routes are:
+Interactive API documentation is available at `/docs` while the service is running. Core public routes are:
 
 - `POST /api/people/resolve`
 - `POST /api/people`
