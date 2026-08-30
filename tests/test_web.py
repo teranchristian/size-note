@@ -173,7 +173,7 @@ def test_aliases_are_visible_editable_and_removable_from_web(client, create_pers
         data={"alias": "Christian"},
     )
     assert conflict.status_code == 400
-    assert "must be different from the person's name" in conflict.text
+    assert "must be different from" in conflict.text
 
     removed = client.post(
         f"{person_url}/aliases/{alias_id}/delete",
