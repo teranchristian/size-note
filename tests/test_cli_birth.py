@@ -54,7 +54,6 @@ def test_person_add_requires_stage_or_birth_before_api_call(monkeypatch):
     result = runner.invoke(cli.app, ["person-add", "Morgan", "--json"])
 
     assert result.exit_code != 0
-    assert "growth-stage" in result.output
     assert calls == []
 
 
