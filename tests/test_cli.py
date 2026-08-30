@@ -139,3 +139,109 @@ def test_person_update_stops_at_similar_match(monkeypatch):
     assert result.exit_code == 0
     assert '"status": "confirmation_required"' in result.stdout
     assert calls == []
+
+
+def test_person_delete_requires_explicit_confirm_before_resolution(monkeypatch):
+    calls = []
+    monkeypatch.setattr(cli, "_resolve", lambda *args, **kwargs: calls.append((args, kwargs)))
+
+    result = runner.invoke(
+        cli.app,
+        ["person-delete", "--person", "Haru", "--json"],
+    )
+
+    assert result.exit_code == 0
+    assert '"status": "confirmation_required"' in result.stdout
+    assert calls == []
+
+
+def test_person_delete_resolves_then_deletes_after_confirm(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        cli,
+        "_resolve",
+        lambda _url, _person: {
+            "status": "exact_match",
+            "query": "Haru",
+            "candidates": [{"id": "person-1", "name": "Haru"}],
+        },
+    )
+
+    def fake_request(method, url, **kwargs):
+        calls.append((method, url, kwargs))
+        return {"status": "deleted", "id": "person-1", "name": "Haru"}
+
+    monkeypatch.setattr(cli, "_request", fake_request)
+    result = runner.invoke(
+        cli.app,
+        ["person-delete", "--person", "Haru", "--confirm", "--json"],
+    )
+
+    assert result.exit_code == 0
+    assert calls == [
+        ("DELETE", "http://127.0.0.1:3010/api/people/person-1", {})
+    ]
+    assert '"status": "deleted"' in result.stdout
+
+
+def test_size_update_uses_exact_person_and_stable_size_id(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        cli,
+        "_resolve",
+        lambda _url, _person: {
+            "status": "exact_match",
+            "query": "Haru",
+            "candidates": [{"id": "person-1", "name": "Haru"}],
+        },
+    )
+
+    def fake_request(method, url, **kwargs):
+        calls.append((method, url, kwargs))
+        return {
+            "id": "size-1",
+            "person_id": "person-1",
+            "item": "T-shirt",
+            "size": "95",
+            "system": "Japan",
+        }
+
+    monkeypatch.setattr(cli, "_request", fake_request)
+    result = runner.invoke(
+        cli.app,
+        [
+            "size-update",
+            "--person",
+            "Haru",
+            "--size-id",
+            "size-1",
+            "--size",
+            "95",
+            "--notes",
+            "Corrected",
+            "--json",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert calls == [
+        (
+            "PATCH",
+            "http://127.0.0.1:3010/api/people/person-1/sizes/size-1",
+            {"json": {"size": "95", "notes": "Corrected"}},
+        )
+    ]
+
+
+def test_size_delete_requires_confirm(monkeypatch):
+    calls = []
+    monkeypatch.setattr(cli, "_resolve", lambda *args, **kwargs: calls.append((args, kwargs)))
+
+    result = runner.invoke(
+        cli.app,
+        ["size-delete", "--person", "Haru", "--size-id", "size-1", "--json"],
+    )
+
+    assert result.exit_code == 0
+    assert '"status": "confirmation_required"' in result.stdout
+    assert calls == []
