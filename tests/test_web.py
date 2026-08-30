@@ -29,6 +29,7 @@ def test_mobile_web_flow_creates_person_and_size(client):
             "item": "T-shirt",
             "size": "M",
             "system": "Universal",
+            "equivalents": "JP: L",
             "brand": "",
             "model": "",
             "fit_notes": "A little loose",
@@ -41,9 +42,49 @@ def test_mobile_web_flow_creates_person_and_size(client):
     updated_detail = client.get(person_url)
     assert "T-shirt" in updated_detail.text
     assert "Universal" in updated_detail.text
+    assert "L JP" in updated_detail.text
     assert "A little loose" in updated_detail.text
     assert "Bought in Tokyo" in updated_detail.text
     assert "Edit" in updated_detail.text
+
+
+def test_web_groups_multiple_shoe_systems_on_one_card(client, create_person):
+    person = create_person("Christian")
+    person_url = f"/people/{person['id']}"
+
+    saved = client.post(
+        f"{person_url}/sizes",
+        data={
+            "item": "Shoes",
+            "size": "25.25",
+            "system": "CM",
+            "equivalents": "EU: 40\nUS: 7",
+            "brand": "ASICS",
+            "model": "1011B004",
+            "fit_notes": "Fits well",
+            "notes": "",
+            "measured_on": "",
+        },
+        follow_redirects=False,
+    )
+    assert saved.status_code == 303
+
+    detail = client.get(person_url)
+    assert detail.status_code == 200
+    assert "25.25" in detail.text
+    assert "40 EU" in detail.text
+    assert "7 US" in detail.text
+    assert "ASICS" in detail.text
+    assert "1011B004" in detail.text
+
+    records = client.get(
+        f"/api/people/{person['id']}/sizes", params={"history": "false"}
+    ).json()
+    assert len(records) == 1
+    assert records[0]["equivalents"] == [
+        {"size": "40", "system": "EU"},
+        {"size": "7", "system": "US"},
+    ]
 
 
 def test_person_notes_can_be_added_and_edited_from_detail_page(client, create_person):
@@ -121,6 +162,7 @@ def test_size_can_be_edited_and_deleted_from_web(client, create_person):
             "item": "T-shirt",
             "size": "95",
             "system": "Japan",
+            "equivalents": "US: 3T",
             "brand": "Uniqlo",
             "model": "",
             "fit_notes": "Fits well",
@@ -132,6 +174,7 @@ def test_size_can_be_edited_and_deleted_from_web(client, create_person):
     assert changed.status_code == 303
     detail = client.get(person_url)
     assert "95" in detail.text
+    assert "3T US" in detail.text
     assert "Uniqlo" in detail.text
     assert "Fits well" in detail.text
     assert "Wrong note" not in detail.text
