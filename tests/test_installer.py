@@ -47,6 +47,7 @@ def _create_sandbox(
     profile: str = "example-profile",
     backend: str = "local",
     with_hermes: bool = True,
+    supports_config_get: bool = False,
 ) -> InstallerSandbox:
     project = tmp_path / "project"
     project.mkdir()
@@ -114,7 +115,17 @@ if [ "${1:-}" = "-p" ]; then
   [ "$requested" = "$FAKE_HERMES_PROFILE" ] || exit 1
 fi
 if [ "${1:-}" = "config" ] && [ "${2:-}" = "get" ]; then
+  [ "$FAKE_HERMES_CONFIG_GET" = "1" ] || exit 1
   printf '%s\\n' "$FAKE_HERMES_BACKEND"
+  exit 0
+fi
+if [ "${1:-}" = "config" ] && [ "${2:-}" = "show" ]; then
+  printf '%s\\n' \\
+    'Model' \\
+    '  Provider: openrouter' \\
+    'Terminal' \\
+    "  Backend: $FAKE_HERMES_BACKEND" \\
+    '  Timeout: 120'
   exit 0
 fi
 if [ "${1:-}" = "skills" ] && [ "${2:-}" = "list" ]; then
@@ -140,6 +151,7 @@ exit 1
         "FAKE_DOCKER_LOG": str(docker_log),
         "FAKE_HERMES_PROFILE": profile,
         "FAKE_HERMES_BACKEND": backend,
+        "FAKE_HERMES_CONFIG_GET": "1" if supports_config_get else "0",
     }
     return InstallerSandbox(project=project, home=home, env=env, profile=profile)
 
@@ -166,6 +178,15 @@ def test_installs_named_profile_and_is_safe_to_rerun(tmp_path):
         check=True,
     )
     assert cli.stdout.strip() == "http://127.0.0.1:4321"
+
+
+def test_supports_legacy_hermes_config_get(tmp_path):
+    sandbox = _create_sandbox(tmp_path, supports_config_get=True)
+
+    result = sandbox.run("--profile", sandbox.profile)
+
+    assert result.returncode == 0, result.stderr
+    assert "Installed and verified Hermes skill" in result.stdout
 
 
 def test_default_profile_uses_default_hermes_home(tmp_path):
