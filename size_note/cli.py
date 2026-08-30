@@ -277,7 +277,10 @@ def size_update(
     system: Annotated[str | None, typer.Option("--system")] = None,
     equivalent: Annotated[
         list[str] | None,
-        typer.Option("--equivalent", help="Replacement equivalent SYSTEM:SIZE; repeat as needed"),
+        typer.Option(
+            "--equivalent",
+            help="Replacement equivalent SYSTEM:SIZE; repeat as needed",
+        ),
     ] = None,
     clear_equivalents: Annotated[bool, typer.Option("--clear-equivalents")] = False,
     brand: Annotated[str | None, typer.Option("--brand")] = None,
@@ -430,7 +433,11 @@ def get_sizes(
             equivalents_text = ""
             if record.get("equivalents"):
                 formatted = ", ".join(
-                    f"{entry['size']} {entry['system']}" if entry.get("system") else entry["size"]
+                    (
+                        f"{entry['size']} {entry['system']}"
+                        if entry.get("system")
+                        else entry["size"]
+                    )
                     for entry in record["equivalents"]
                 )
                 equivalents_text = f" · also {formatted}"
@@ -486,3 +493,7 @@ def health(
     """Check whether the Size Note service is reachable."""
     payload = _request("GET", f"{_base_url(url)}/health")
     _emit(payload, json_output=json_output, human=f"Size Note {payload['version']} is healthy.")
+
+
+if __name__ == "__main__":
+    app()
