@@ -1,7 +1,7 @@
 ---
 name: size-note
-description: Save, update, retrieve, correct, or delete clothing, footwear, ring, hat, and other wearable sizes for people using the local Size Note CLI. Use when the user asks Hermes to remember what fits someone, check a saved size, correct a mistake, or remove Size Note data.
-version: 0.3.0
+description: Save, update, retrieve, correct, or delete wearable sizes and person aliases using the local Size Note CLI. Use when the user asks Hermes to remember what fits someone, identify a person by another name or phrase, check a saved size, correct a mistake, or remove Size Note data.
+version: 0.4.0
 license: MIT
 platforms: [linux, macos]
 prerequisites:
@@ -21,16 +21,50 @@ Before the first operation in a session, run `size-note health --json`. If it is
 
 ## Route information to the right field
 
-Keep person context separate from size-specific context:
+Keep identity, person facts, and size-specific context separate:
 
+- **Aliases**: another name or phrase the user can use to identify the same person. Examples: `Alex`, `me`, `myself`, `my son`, `my manager`. Self-references and relationship phrases belong here when they unambiguously refer to that person.
 - **Birth information** (`person-add/person-update --birth`): a known birth year, year-month, or exact date. Examples: `2024`, `2024-05`, `2024-05-12`.
-- **Person notes**: relationship, general preferences, or other stable person facts. Examples: `my son`, `prefers soft fabrics`.
+- **Person notes** (`person-add/person-update --notes`): stable facts or preferences about the person that are not used to identify them. Examples: `prefers soft fabrics`, `usually likes a relaxed fit`.
 - **Size notes** (`remember --notes`): context about that specific size record. Examples: `bought in Tokyo`, `measured at school`, `winter uniform`.
 - **Fit notes** (`remember --fit-notes`): observations about how the item fits. Examples: `runs small`, `a little loose`, `sleeves are short`.
 
-Never store known birth information in notes when the structured `--birth` field can represent it. Never store relationship or birth information in a size record just because it appeared in the same sentence as a size.
+Never put an identity phrase such as `me`, `myself`, or `my son` in person notes merely because it describes a relationship. If the phrase is how the user refers to the person, store it as an alias.
 
-If a user gives both person context and a size in one request, save/update the person context separately and then save the size.
+Aliases must identify one person safely. If a phrase such as `my son`, `my daughter`, `my manager`, or another relationship could refer to more than one person, ask which person the user means before saving that alias. Do not silently assign an ambiguous relationship phrase.
+
+Never store known birth information in notes when the structured `--birth` field can represent it. Never store aliases, relationship identity phrases, or birth information in a size record just because they appeared in the same sentence as a size.
+
+If a user gives an alias, person facts, birth information, and a size in one request, route each part separately and then save the size.
+
+## Manage aliases
+
+When the user explicitly says that another name or phrase refers to an existing person, save it as an alias:
+
+```bash
+size-note person-alias-add --person "Riley" --alias "my son" --json
+size-note person-alias-add --person "Alex" --alias "myself" --json
+```
+
+Use `person-alias-list` when you need to inspect the aliases currently stored for one person:
+
+```bash
+size-note person-alias-list --person "Riley" --json
+```
+
+To correct an alias, use the existing alias text and its replacement:
+
+```bash
+size-note person-alias-update --person "Riley" --alias "my kid" --new-alias "my son" --json
+```
+
+Deleting an alias removes an identity shortcut. Ask for explicit confirmation immediately before deleting it, then run:
+
+```bash
+size-note person-alias-delete --person "Riley" --alias "my son" --confirm --json
+```
+
+Do not add an alias merely because two names look similar. Similar-name matching still requires confirmation that both references are the same person.
 
 ## Birth information and growth stage
 
@@ -46,6 +80,8 @@ When birth information exists, Size Note uses it to determine the effective chil
 
 The saved `growth_stage` is a fallback for people without birth information. Do not repeatedly update a person's stored stage just because a birthday passed.
 
+A relationship alias such as `my son`, `my daughter`, `my friend`, or `my mother` does not by itself determine age. Do not infer growth stage only from an alias.
+
 ## One physical fit = one size record
 
 A label may express the same fit in several sizing systems. Store those values together in one Size Note record, not as separate current sizes.
@@ -57,7 +93,7 @@ Equivalent relationships are bidirectional representations of the same fit. If A
 For example, if an ASICS label says the same shoe is 25.25 cm, EU 40, and US 7, run one command:
 
 ```bash
-size-note remember --person "Christian" --item "Shoes" --size "25.25" --system "CM" --equivalent "EU:40" --equivalent "US:7" --brand "ASICS" --model "1011B004" --json
+size-note remember --person "Alex" --item "Shoes" --size "25.25" --system "CM" --equivalent "EU:40" --equivalent "US:7" --brand "ASICS" --model "1011B004" --json
 ```
 
 Do **not** run `remember` three times for CM, EU, and US. They are representations of one physical fit.
@@ -71,7 +107,7 @@ Only store equivalents explicitly provided by the user, label, manufacturer, or 
 Run:
 
 ```bash
-size-note remember --person "NAME" --item "ITEM" --size "SIZE" --system "SYSTEM" --json
+size-note remember --person "NAME OR ALIAS" --item "ITEM" --size "SIZE" --system "SYSTEM" --json
 ```
 
 `--system`, repeatable `--equivalent`, `--brand`, `--model`, `--fit-notes`, and `--notes` are optional.
@@ -89,22 +125,24 @@ After the user confirms a suggested candidate, rerun with its returned stable ID
 size-note remember --person "Alex" --confirm-person-id "PERSON_ID" --remember-alias --item "T-shirt" --size "M" --json
 ```
 
+For a standalone identity statement, prefer `person-alias-add` rather than attaching alias creation to an unrelated size save.
+
 Never silently choose a similar person.
 
 ## Create a person
 
 Only create a person after the user confirms that no existing candidate is correct.
 
-If the user supplied birth information, it is enough to infer the effective child/adult stage; do not ask the stage again:
+If the user supplied birth information, it is enough to infer the effective child/adult stage; do not ask the stage again. If the user also supplied an unambiguous identity phrase, save it with `--alias`:
 
 ```bash
-size-note person-add "Haru" --birth "2024" --notes "My son" --json
+size-note person-add "Riley" --birth "2024" --alias "my son" --json
 ```
 
 If the user explicitly said the person is an adult, create them as an adult. Do not ask for a birth date unless the user already supplied one:
 
 ```bash
-size-note person-add "Alex" --growth-stage adult --json
+size-note person-add "Alex" --growth-stage adult --alias "myself" --json
 ```
 
 If the user explicitly said the person is a child but gave no birth information, birth information is useful for better reminders. Ask once whether they know the birth year/date, making clear that it is optional. If they do not know it or prefer not to provide it, create the child anyway:
@@ -115,16 +153,14 @@ size-note person-add "Sam" --growth-stage child --json
 
 If neither birth information nor an explicit child/adult stage is available, ask **whether the person is a child or an adult before creating them**. Do not silently default to adult.
 
-Do not infer age only from a relationship such as `my son`, `my daughter`, `my friend`, or `my mother`.
-
 ## Update a person
 
-For an existing person, use `person-update` for person-level corrections. It can change the display name, notes, growth-stage fallback, or birth information:
+For an existing person, use `person-update` for person-level facts and corrections. It can change the display name, notes, growth-stage fallback, or birth information. Alias changes use the dedicated `person-alias-*` commands instead.
 
 ```bash
-size-note person-update --person "Haru" --birth "2024-05" --json
-size-note person-update --person "Haru" --notes "My son; prefers soft fabrics" --json
-size-note person-update --person "Haru" --name "Haru Teran" --json
+size-note person-update --person "Riley" --birth "2024-05" --json
+size-note person-update --person "Riley" --notes "Prefers soft fabrics" --json
+size-note person-update --person "Riley" --name "Riley A." --json
 ```
 
 Use `--clear-birth` only when the user explicitly wants the stored birth information removed.
@@ -138,13 +174,13 @@ Do not overwrite useful existing person notes with a shorter fragment when the u
 When the user is correcting a mistake in a specific saved record, do not call `remember`, because that can intentionally create history. First retrieve the person's sizes with IDs:
 
 ```bash
-size-note get --person "Haru" --json
+size-note get --person "Riley" --json
 ```
 
 Identify the exact intended record from the returned `sizes` array. If more than one record could match the user's wording, ask which one they mean. Then update that stable record ID:
 
 ```bash
-size-note size-update --person "Haru" --size-id "SIZE_ID" --size "95" --system "Japan" --json
+size-note size-update --person "Riley" --size-id "SIZE_ID" --size "95" --system "Japan" --json
 ```
 
 To replace its equivalent representations, repeat `--equivalent "SYSTEM:SIZE"`. To remove all equivalents, use `--clear-equivalents`.
@@ -160,7 +196,7 @@ Deletion is destructive. **Always obtain explicit user confirmation immediately 
 To delete one size, first run `get --json`, identify the exact record ID, and ask for confirmation. After the user confirms:
 
 ```bash
-size-note size-delete --person "Haru" --size-id "SIZE_ID" --confirm --json
+size-note size-delete --person "Riley" --size-id "SIZE_ID" --confirm --json
 ```
 
 If the deleted record was current and had an older version of the same item/brand/model fit, Size Note restores the most recent previous version as current.
@@ -168,7 +204,7 @@ If the deleted record was current and had an older version of the same item/bran
 To delete a person, explain that all aliases and all size history for that person will also be deleted, then ask for confirmation. Only after explicit confirmation run:
 
 ```bash
-size-note person-delete --person "NAME" --confirm --json
+size-note person-delete --person "NAME OR ALIAS" --confirm --json
 ```
 
 Never pass `--confirm` before the user has explicitly confirmed the specific deletion.
@@ -203,7 +239,7 @@ When birth information is known, Size Note uses conservative age bands for autom
 
 If a child has no birth information, Size Note falls back to the original generic rule: shoes every 90 days and other sizes every 180 days.
 
-When reporting a due or soon review, include the person's exact or approximate age when returned and say roughly how long it has been since `verified_at`. Example: `Haru is about 2 years old. His T-shirt size was last checked 4 months ago, so it may be worth checking again.`
+When reporting a due or soon review, include the person's exact or approximate age when returned and say roughly how long it has been since `verified_at`. Example: `Riley is about 2 years old. Their T-shirt size was last checked 4 months ago, so it may be worth checking again.`
 
 A successful `Still correct` verification updates `verified_at`, restarting that specific size's review timer without creating history.
 
