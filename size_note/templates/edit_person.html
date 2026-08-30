@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ person.name }} · Size Note{% endblock %}
+{% block content %}
+  <a class="back-link" href="{{ url_for('person_detail', person_id=person.id) }}">← {{ person.name }}</a>
+  <section class="page-heading">
+    <p class="eyebrow">Edit person</p>
+    <h1>Update {{ person.name }}</h1>
+    <p>Change the display name, growth stage, or person-level notes.</p>
+  </section>
+
+  {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
+  <form class="form-card" action="{{ url_for('edit_person_web', person_id=person.id) }}" method="post">
+    <label for="name">Name</label>
+    <input id="name" name="name" value="{{ values.get('name', '') }}" required autofocus>
+
+    <fieldset>
+      <legend>Growth stage</legend>
+      <div class="choice-grid">
+        <label class="choice">
+          <input type="radio" name="growth_stage" value="adult" {% if values.get('growth_stage') == 'adult' %}checked{% endif %}>
+          <span>Adult<small>No automatic size review reminders</small></span>
+        </label>
+        <label class="choice">
+          <input type="radio" name="growth_stage" value="child" {% if values.get('growth_stage') == 'child' %}checked{% endif %}>
+          <span>Child<small>Growth-aware size review reminders</small></span>
+        </label>
+      </div>
+    </fieldset>
+
+    <label for="notes">Person notes <span>optional</span></label>
+    <textarea id="notes" name="notes" rows="4" placeholder="Relationship, birth year, preferences...">{{ values.get('notes', '') }}</textarea>
+
+    <button class="button full-width" type="submit">Save changes</button>
+  </form>
+
+  <div class="danger-zone">
+    <div>
+      <strong>Delete {{ person.name }}</strong>
+      <p>This removes the person, aliases, and all saved size history.</p>
+    </div>
+    <a class="danger-link" href="{{ url_for('confirm_delete_person', person_id=person.id) }}">Delete person</a>
+  </div>
+{% endblock %}
