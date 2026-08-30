@@ -1,4 +1,3 @@
-from calendar import monthrange
 from dataclasses import dataclass
 from datetime import date
 
@@ -93,15 +92,19 @@ def youngest_possible_age(
     validate_birth_parts(year, month, day, today=current)
 
     if month is None:
-        latest = date(year, 12, 31)
-    elif day is None:
-        latest = date(year, month, monthrange(year, month)[1])
-    else:
-        latest = date(year, month, day)
+        # Keep the younger possible age through the entire unknown birth year.
+        # The age advances on 1 January of the following year.
+        return max(0, current.year - year - 1)
 
-    if latest > current:
-        latest = current
-    return _age_on(current, latest)
+    if day is None:
+        # Keep the younger possible age through the entire unknown birth month.
+        # The age advances on the first day of the following month.
+        age = current.year - year
+        if current.month <= month:
+            age -= 1
+        return max(0, age)
+
+    return _age_on(current, date(year, month, day))
 
 
 def effective_growth_stage(
