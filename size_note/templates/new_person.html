@@ -31,11 +31,12 @@
     {% include "_birth_fields.html" %}
 
     <label for="aliases">Aliases <span>optional</span></label>
-    <input id="aliases" name="aliases" value="{{ values.get('aliases', '') }}" placeholder="Alex, Lex">
-    <p class="field-help">Separate aliases with commas. Hermes can also add one after you confirm a match.</p>
+    <input id="aliases" name="aliases" value="{{ values.get('aliases', '') }}" placeholder="Alex, me, my son">
+    <p class="field-help">Alternative names or identifying phrases for this person. Separate multiple aliases with commas.</p>
 
     <label for="notes">Notes <span>optional</span></label>
-    <textarea id="notes" name="notes" rows="3" placeholder="Relationship, preferences, or other person context">{{ values.get('notes', '') }}</textarea>
+    <textarea id="notes" name="notes" rows="3" placeholder="Preferences or other person-level context">{{ values.get('notes', '') }}</textarea>
+    <p class="field-help">Use notes for facts about the person, not for names or phrases used to identify them.</p>
 
     <button class="button full-width" type="submit">Create person</button>
   </form>
