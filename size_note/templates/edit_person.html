@@ -33,7 +33,7 @@
     <label for="notes">Person notes <span>optional</span></label>
     <textarea id="notes" name="notes" rows="4" placeholder="Relationship, preferences, or other context...">{{ values.get('notes', '') }}</textarea>
 
-    <button class="button full-width" type="submit">Save changes</button>
+    <button class="button full-width" type="submit">Save person</button>
   </form>
 
   <section class="alias-card" id="aliases">
@@ -52,11 +52,14 @@
         {% for entry in person.aliases %}
           <div class="alias-row">
             <form class="alias-edit-form" action="{{ url_for('update_alias_web', person_id=person.id, alias_id=entry.id) }}" method="post">
-              <input name="alias" aria-label="Edit alias {{ entry.alias }}" value="{{ entry.alias }}" required>
-              <button type="submit">Save</button>
+              <label class="alias-field-label" for="alias-{{ entry.id }}">Alias</label>
+              <div class="alias-edit-controls">
+                <input id="alias-{{ entry.id }}" name="alias" aria-label="Edit alias {{ entry.alias }}" value="{{ entry.alias }}" required>
+                <button type="submit">Update alias</button>
+              </div>
             </form>
-            <form action="{{ url_for('delete_alias_web', person_id=person.id, alias_id=entry.id) }}" method="post">
-              <button class="alias-remove" type="submit" aria-label="Remove alias {{ entry.alias }}">Remove</button>
+            <form class="alias-delete-form" action="{{ url_for('delete_alias_web', person_id=person.id, alias_id=entry.id) }}" method="post">
+              <button class="alias-remove" type="submit" aria-label="Delete alias {{ entry.alias }}">Delete alias</button>
             </form>
           </div>
         {% endfor %}
@@ -65,12 +68,15 @@
       <p class="empty-note alias-empty">No aliases yet.</p>
     {% endif %}
 
-    <form class="inline-form alias-add-form" action="{{ url_for('confirm_alias_web', person_id=person.id) }}" method="post">
-      <input type="hidden" name="return_to" value="edit">
-      <input name="alias" aria-label="New alias" placeholder="e.g. Chris, me, my son" required>
-      <button type="submit">Add alias</button>
-    </form>
-    <p class="field-help">Aliases can be nicknames, relationship phrases, or words like “me” and “myself”.</p>
+    <div class="alias-add-section">
+      <strong>Add alias</strong>
+      <p>Use another name or phrase that should identify this person, such as Chris, me, myself, or my son.</p>
+      <form class="inline-form alias-add-form" action="{{ url_for('confirm_alias_web', person_id=person.id) }}" method="post">
+        <input type="hidden" name="return_to" value="edit">
+        <input name="alias" aria-label="New alias" placeholder="e.g. Chris, me, my son" required>
+        <button type="submit">Add alias</button>
+      </form>
+    </div>
   </section>
 
   <div class="danger-zone">
