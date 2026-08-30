@@ -7,13 +7,14 @@ from sqlalchemy.orm import Session
 
 from size_note.database import get_session
 from size_note.exceptions import DomainError
-from size_note.schemas import PersonCreate, SizeCreate
+from size_note.schemas import PersonCreate, PersonUpdate, SizeCreate
 from size_note.services.people import (
     add_alias,
     create_person,
     get_person,
     list_people,
     resolve_person,
+    update_person,
 )
 from size_note.services.sizes import list_reviews, list_sizes, save_size, verify_size
 
@@ -122,6 +123,19 @@ def person_detail(
             "history": [record for record in records if not record.is_current],
             "reviews": reviews,
         },
+    )
+
+
+@router.post("/people/{person_id}/notes", name="update_person_notes_web")
+def update_person_notes_web(
+    request: Request,
+    person_id: str,
+    session: SessionDependency,
+    notes: Annotated[str, Form()] = "",
+) -> RedirectResponse:
+    update_person(session, person_id, PersonUpdate(notes=notes))
+    return RedirectResponse(
+        request.url_for("person_detail", person_id=person_id), status_code=303
     )
 
 

@@ -52,3 +52,19 @@ def test_person_context_remains_free_form_notes(client, create_person):
     assert person["growth_stage"] == "child"
     assert person["notes"] == "Prefers soft fabrics"
     assert "relationship" not in person
+
+
+def test_person_notes_can_be_updated_and_cleared(client, create_person):
+    person = create_person("Haru", growth_stage="child")
+
+    updated = client.patch(
+        f"/api/people/{person['id']}",
+        json={"notes": "My son; born in 2024"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["notes"] == "My son; born in 2024"
+    assert updated.json()["growth_stage"] == "child"
+
+    cleared = client.patch(f"/api/people/{person['id']}", json={"notes": "   "})
+    assert cleared.status_code == 200
+    assert cleared.json()["notes"] is None

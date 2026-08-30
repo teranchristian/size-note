@@ -41,6 +41,11 @@ class PersonUpdate(CleanModel):
     growth_stage: GrowthStage | None = None
     notes: str | None = None
 
+    @field_validator("notes", mode="after")
+    @classmethod
+    def blank_notes_to_none(cls, value: str | None) -> str | None:
+        return optional_text(value)
+
 
 class AliasCreate(CleanModel):
     alias: str = Field(min_length=1, max_length=160)

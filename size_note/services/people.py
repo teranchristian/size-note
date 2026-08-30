@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 from size_note.exceptions import ConflictError, NotFoundError
 from size_note.models import Person, PersonAlias
 from size_note.normalization import clean_text, normalize, optional_text
-from size_note.schemas import PersonCreate
+from size_note.schemas import PersonCreate, PersonUpdate
 
 
 @dataclass(frozen=True)
@@ -78,6 +78,32 @@ def create_person(session: Session, data: PersonCreate) -> Person:
             code="person_identifier_conflict",
         ) from exc
     return get_person(session, person.id)
+
+
+def update_person(session: Session, person_id: str, data: PersonUpdate) -> Person:
+    person = get_person(session, person_id)
+
+    if "name" in data.model_fields_set and data.name is not None:
+        normalized_name = normalize(data.name)
+        _ensure_identifier_available(session, normalized_name, person_id=person_id)
+        person.name = clean_text(data.name)
+        person.normalized_name = normalized_name
+
+    if "growth_stage" in data.model_fields_set and data.growth_stage is not None:
+        person.growth_stage = data.growth_stage
+
+    if "notes" in data.model_fields_set:
+        person.notes = optional_text(data.notes)
+
+    try:
+        session.commit()
+    except IntegrityError as exc:
+        session.rollback()
+        raise ConflictError(
+            "That name or alias is already used by another person.",
+            code="person_identifier_conflict",
+        ) from exc
+    return get_person(session, person_id)
 
 
 def add_alias(session: Session, person_id: str, raw_alias: str) -> Person:
