@@ -16,16 +16,25 @@ from size_note.schemas import (
     SizeCreate,
     SizeRead,
     SizeSaveResponse,
+    SizeUpdate,
 )
 from size_note.services.people import (
     add_alias,
     create_person,
+    delete_person,
     get_person,
     list_people,
     resolve_person,
     update_person,
 )
-from size_note.services.sizes import list_reviews, list_sizes, save_size, verify_size
+from size_note.services.sizes import (
+    delete_size,
+    list_reviews,
+    list_sizes,
+    save_size,
+    update_size,
+    verify_size,
+)
 
 router = APIRouter(prefix="/api")
 SessionDependency = Annotated[Session, Depends(get_session)]
@@ -65,6 +74,12 @@ def update_person_endpoint(
     return person_read(update_person(session, person_id, payload))
 
 
+@router.delete("/people/{person_id}", include_in_schema=False)
+def delete_person_endpoint(person_id: str, session: SessionDependency) -> dict[str, str]:
+    name = delete_person(session, person_id)
+    return {"status": "deleted", "id": person_id, "name": name}
+
+
 @router.post("/people/{person_id}/aliases", response_model=PersonRead)
 def add_alias_endpoint(
     person_id: str, payload: AliasCreate, session: SessionDependency
@@ -88,6 +103,36 @@ def list_sizes_endpoint(
         size_read(record)
         for record in list_sizes(session, person_id, include_history=history)
     ]
+
+
+@router.patch(
+    "/people/{person_id}/sizes/{size_id}",
+    response_model=SizeRead,
+    include_in_schema=False,
+)
+def update_size_endpoint(
+    person_id: str,
+    size_id: str,
+    payload: SizeUpdate,
+    session: SessionDependency,
+) -> SizeRead:
+    return size_read(
+        update_size(session, size_id, payload, expected_person_id=person_id)
+    )
+
+
+@router.delete("/people/{person_id}/sizes/{size_id}", include_in_schema=False)
+def delete_size_endpoint(
+    person_id: str, size_id: str, session: SessionDependency
+) -> dict[str, str]:
+    record = delete_size(session, size_id, expected_person_id=person_id)
+    return {
+        "status": "deleted",
+        "id": size_id,
+        "person_id": person_id,
+        "item": record.item,
+        "size": record.size_value,
+    }
 
 
 @router.post("/sizes/{size_id}/verify", response_model=SizeSaveResponse)
