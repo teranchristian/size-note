@@ -43,6 +43,13 @@
             <div>
               <p class="item-name">{{ record.item }}</p>
               <p class="size-value">{{ record.size_value }}{% if record.size_system %} <span>{{ record.size_system }}</span>{% endif %}</p>
+              {% if record.equivalents %}
+                <p class="size-equivalents">
+                  {% for equivalent in record.equivalents %}
+                    <span>{{ equivalent['size'] }}{% if equivalent.get('system') %} {{ equivalent['system'] }}{% endif %}</span>{% if not loop.last %} · {% endif %}
+                  {% endfor %}
+                </p>
+              {% endif %}
             </div>
             {% if review and review.status != 'current' %}
               <span class="status {{ review.status }}">{% if review.status == 'due' %}Review now{% else %}Review soon{% endif %}</span>
@@ -86,7 +93,15 @@
       <div class="history-list">
         {% for record in history %}
           <div class="history-row">
-            <div><strong>{{ record.item }} · {{ record.size_value }}</strong><span>{{ record.size_system or 'No system' }} · checked {{ record.verified_at.strftime('%d %b %Y') }}</span></div>
+            <div>
+              <strong>{{ record.item }} · {{ record.size_value }}{% if record.size_system %} {{ record.size_system }}{% endif %}</strong>
+              <span>
+                {% if record.equivalents %}
+                  Also {% for equivalent in record.equivalents %}{{ equivalent['size'] }}{% if equivalent.get('system') %} {{ equivalent['system'] }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %} ·
+                {% endif %}
+                checked {{ record.verified_at.strftime('%d %b %Y') }}
+              </span>
+            </div>
             <a href="{{ url_for('edit_size', person_id=person.id, size_id=record.id) }}">Edit</a>
           </div>
         {% endfor %}
