@@ -1,7 +1,7 @@
 ---
 name: size-note
 description: Save, update, retrieve, correct, or delete clothing, footwear, ring, hat, and other wearable sizes for people using the local Size Note CLI. Use when the user asks Hermes to remember what fits someone, check a saved size, correct a mistake, or remove Size Note data.
-version: 0.2.0
+version: 0.2.1
 license: MIT
 platforms: [linux, macos]
 prerequisites:
@@ -36,6 +36,8 @@ If a user gives both person context and a size in one request, save/update the p
 A label may express the same fit in several sizing systems. Store those values together in one Size Note record, not as separate current sizes.
 
 Choose one confirmed value as the primary `--size`/`--system`, then pass every other confirmed representation with a repeatable `--equivalent "SYSTEM:SIZE"` option.
+
+Equivalent relationships are bidirectional representations of the same fit. If AU XS is stored with Japan S as an equivalent, treat Japan S as equivalent to AU XS as well. Do not ask to save the reverse direction as a separate equivalent or record, and never create duplicate reverse equivalents.
 
 For example, if an ASICS label says the same shoe is 25.25 cm, EU 40, and US 7, run one command:
 
@@ -151,7 +153,9 @@ Run:
 size-note get --person "NAME OR ALIAS" --current-only --json
 ```
 
-Mention the primary sizing system, confirmed equivalents, and brand when present. If an item is due for review, state that the saved value may be outdated instead of presenting it as certainly current.
+Mention the primary sizing system, confirmed equivalents, and brand when present. Treat every confirmed equivalent as bidirectional when answering. A query phrased using either system in an equivalent pair should resolve to the same fit record; for example, asking for `Japan S` or `AU XS` should return the same T-shirt fit rather than prompting for a reverse mapping.
+
+If an item is due for review, state that the saved value may be outdated instead of presenting it as certainly current.
 
 To check all child review reminders, run:
 
