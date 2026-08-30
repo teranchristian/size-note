@@ -3,6 +3,7 @@ from datetime import date
 import pytest
 
 from size_note.birth import (
+    approximate_age_years,
     effective_growth_stage,
     parse_birth,
     review_interval_days,
@@ -28,6 +29,12 @@ def test_partial_birth_never_fabricates_a_first_day():
     assert youngest_possible_age(2024, today=date(2026, 8, 30)) == 1
     assert youngest_possible_age(2024, 5, today=date(2026, 5, 10)) == 1
     assert youngest_possible_age(2024, 5, 1, today=date(2026, 5, 10)) == 2
+
+
+def test_display_age_can_be_friendlier_than_conservative_review_age():
+    assert approximate_age_years(2024, today=date(2026, 8, 30)) == 2
+    assert youngest_possible_age(2024, today=date(2026, 8, 30)) == 1
+    assert approximate_age_years(2024, 5, today=date(2026, 8, 30)) == 2
 
 
 def test_partial_birth_becomes_adult_only_when_definitely_eighteen():
