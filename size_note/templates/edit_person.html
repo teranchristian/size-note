@@ -31,7 +31,8 @@
     {% include "_birth_fields.html" %}
 
     <label for="notes">Person notes <span>optional</span></label>
-    <textarea id="notes" name="notes" rows="4" placeholder="Relationship, preferences, or other context...">{{ values.get('notes', '') }}</textarea>
+    <textarea id="notes" name="notes" rows="4" placeholder="Preferences or other person-level context...">{{ values.get('notes', '') }}</textarea>
+    <p class="field-help">Use aliases below for names or phrases that identify this person, such as “me” or “my son”.</p>
 
     <button class="button full-width" type="submit">Save person</button>
   </form>
@@ -70,10 +71,10 @@
 
     <div class="alias-add-section">
       <strong>Add alias</strong>
-      <p>Use another name or phrase that should identify this person, such as Chris, me, myself, or my son.</p>
+      <p>Use another name or identifying phrase for this person, such as Alex, me, myself, or my son.</p>
       <form class="inline-form alias-add-form" action="{{ url_for('confirm_alias_web', person_id=person.id) }}" method="post">
         <input type="hidden" name="return_to" value="edit">
-        <input name="alias" aria-label="New alias" placeholder="e.g. Chris, me, my son" required>
+        <input name="alias" aria-label="New alias" placeholder="e.g. Alex, me, my son" required>
         <button type="submit">Add alias</button>
       </form>
     </div>
