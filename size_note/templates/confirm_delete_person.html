@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Delete {{ person.name }} · Size Note{% endblock %}
+{% block content %}
+  <a class="back-link" href="{{ url_for('edit_person', person_id=person.id) }}">← Edit {{ person.name }}</a>
+  <section class="page-heading danger-heading">
+    <p class="eyebrow">Delete person</p>
+    <h1>Delete {{ person.name }}?</h1>
+    <p>This cannot be undone. It will remove {{ person.name }}, all aliases, and {{ size_count }} saved size record{% if size_count != 1 %}s{% endif %}.</p>
+  </section>
+
+  <div class="confirm-card">
+    <strong>Are you sure?</strong>
+    <p>Use delete only when this person was added by mistake. If information is wrong, edit the person instead.</p>
+    <div class="confirm-actions">
+      <a class="button secondary-button" href="{{ url_for('edit_person', person_id=person.id) }}">Cancel</a>
+      <form action="{{ url_for('delete_person_web', person_id=person.id) }}" method="post">
+        <button class="danger-button" type="submit">Yes, delete {{ person.name }}</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}
