@@ -5,7 +5,7 @@
   <section class="page-heading">
     <p class="eyebrow">New profile</p>
     <h1>Add a person</h1>
-    <p>Relationships stay in notes. Size Note only needs a name and whether sizes may change quickly.</p>
+    <p>Choose child or adult when age is unknown. Birth information is optional and makes child review reminders more useful.</p>
   </section>
 
   {% if error %}<div class="form-error" role="alert">{{ error }}</div>{% endif %}
@@ -17,22 +17,27 @@
       <legend>Growth stage</legend>
       <div class="choice-grid">
         <label class="choice">
-          <input type="radio" name="growth_stage" value="adult" {% if values.get('growth_stage', 'adult') == 'adult' %}checked{% endif %}>
-          <span><strong>Adult</strong><small>No automatic review deadline</small></span>
+          <input type="radio" name="growth_stage" value="adult" {% if values.get('growth_stage') == 'adult' %}checked{% endif %}>
+          <span><strong>Adult</strong><small>No automatic size review deadline</small></span>
         </label>
         <label class="choice">
           <input type="radio" name="growth_stage" value="child" {% if values.get('growth_stage') == 'child' %}checked{% endif %}>
-          <span><strong>Child</strong><small>Shows age-aware review reminders</small></span>
+          <span><strong>Child</strong><small>Growth-aware size review reminders</small></span>
         </label>
       </div>
+      <p class="field-help">If birth information is provided, Size Note can determine child/adult automatically. Otherwise choose one.</p>
     </fieldset>
+
+    <label for="birth">Birth <span>optional</span></label>
+    <input id="birth" name="birth" value="{{ values.get('birth', '') }}" inputmode="numeric" placeholder="2024, 2024-05, or 2024-05-12">
+    <p class="field-help">Use only what you know. Size Note never invents an unknown month or day.</p>
 
     <label for="aliases">Aliases <span>optional</span></label>
     <input id="aliases" name="aliases" value="{{ values.get('aliases', '') }}" placeholder="Alex, Lex">
     <p class="field-help">Separate aliases with commas. Hermes can also add one after you confirm a match.</p>
 
     <label for="notes">Notes <span>optional</span></label>
-    <textarea id="notes" name="notes" rows="3" placeholder="Prefers relaxed fits">{{ values.get('notes', '') }}</textarea>
+    <textarea id="notes" name="notes" rows="3" placeholder="Relationship, preferences, or other person context">{{ values.get('notes', '') }}</textarea>
 
     <button class="button full-width" type="submit">Create person</button>
   </form>
