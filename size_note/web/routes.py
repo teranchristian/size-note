@@ -62,6 +62,12 @@ def _parse_equivalents(value: str) -> list[dict[str, str | None]]:
     return result
 
 
+def _size_form_error(exc: DomainError | ValueError) -> str:
+    if isinstance(exc, DomainError):
+        return exc.message
+    return str(exc) or "Please check the form."
+
+
 def _size_values(record) -> dict[str, str]:
     return {
         "item": record.item,
@@ -331,7 +337,6 @@ def save_size_web(
             ),
         )
     except (DomainError, ValueError) as exc:
-        message = exc.message if isinstance(exc, DomainError) else str(exc) or "Please check the form."
         return render(
             request,
             "new_size.html",
@@ -339,7 +344,7 @@ def save_size_web(
                 "person": person,
                 "record": None,
                 "values": values,
-                "error": message,
+                "error": _size_form_error(exc),
                 "mode": "create",
             },
             status_code=400,
@@ -423,7 +428,6 @@ def edit_size_web(
             expected_person_id=person_id,
         )
     except (DomainError, ValueError) as exc:
-        message = exc.message if isinstance(exc, DomainError) else str(exc) or "Please check the form."
         return render(
             request,
             "new_size.html",
@@ -431,7 +435,7 @@ def edit_size_web(
                 "person": person,
                 "record": record,
                 "values": values,
-                "error": message,
+                "error": _size_form_error(exc),
                 "mode": "edit",
             },
             status_code=400,
