@@ -343,7 +343,9 @@ def update_person_notes_web(
     )
 
 
-@router.post("/people/{person_id}/aliases", name="confirm_alias_web")
+@router.post(
+    "/people/{person_id}/aliases", response_model=None, name="confirm_alias_web"
+)
 def confirm_alias_web(
     request: Request,
     person_id: str,
@@ -370,7 +372,9 @@ def confirm_alias_web(
 
 
 @router.post(
-    "/people/{person_id}/aliases/{alias_id}/edit", name="update_alias_web"
+    "/people/{person_id}/aliases/{alias_id}/edit",
+    response_model=None,
+    name="update_alias_web",
 )
 def update_alias_web(
     request: Request,
